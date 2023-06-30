@@ -4,6 +4,7 @@ import com.system.moneybank.dtos.request.*;
 import com.system.moneybank.dtos.response.Response;
 import com.system.moneybank.models.AccountDetails;
 import com.system.moneybank.models.Customer;
+import com.system.moneybank.models.Transaction;
 import com.system.moneybank.models.TransactionType;
 import com.system.moneybank.repository.UserRepo;
 import com.system.moneybank.service.emailService.EmailDetails;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import static com.system.moneybank.models.AccountStatus.ACTIVE;
+import static com.system.moneybank.models.TransactionStatus.SUCCESS;
 import static com.system.moneybank.models.TransactionType.CREDIT;
 import static com.system.moneybank.models.TransactionType.DEBIT;
 import static com.system.moneybank.utils.AccountUtils.*;
@@ -76,7 +78,7 @@ public class UserServiceImpl implements  UserService{
         if (isInValidAmount(request)) return Response.builder().code(ACCOUNT_CREDIT_DECLINED_CODE).message(ACCOUNT_CREDIT_DECLINED_MESSAGE).build();
         Customer creditedUser = creditUser(request);
         TransactionRequest transactionRequest = buildTransaction(request, creditedUser, CREDIT);
-        transactionService.save(transactionRequest);
+       // transactionService.save(transactionRequest);
         String message = "Dear " + creditedUser.getFirstName() + "A credit transaction occurred on your account " +
                         "\nAmount: " + request.getAmount() +
                         "\nCurrent balance: "  + creditedUser.getAccountBalance() +
@@ -106,7 +108,7 @@ public class UserServiceImpl implements  UserService{
         if (request.getAmount().compareTo(amountInUserAccount) > 0) return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
         Customer debitedUser = debitUser(request);
         TransactionRequest transactionRequest = buildTransaction(request, debitedUser, DEBIT);
-        transactionService.save(transactionRequest);
+       // transactionService.save(transactionRequest);
         String message = "Dear " + debitedUser.getFirstName() + " A debit transaction occurred on your account." +
                 "\nAmount: " + request.getAmount() +
                 "\nCurrent balance: "  + debitedUser.getAccountBalance() +
@@ -131,24 +133,26 @@ public class UserServiceImpl implements  UserService{
 
         userRepo.save(destinationAccount);
         userRepo.save(sourceAccount);
-        TransactionRequest transactionRequest = TransactionRequest.builder().accountNumber(destinationAccount.getAccountNumber())
-                .type(CREDIT).amount(request.getAmount()).build();
-        transactionService.save(transactionRequest);
+        Transaction sourceTransaction = Transaction.builder()
+                .type(DEBIT).amount(request.getAmount()).accountNumber(destinationAccount.getAccountNumber())
+                .customer(sourceAccount).status(SUCCESS).date(LocalDate.now()).time(LocalTime.now()).build();
+        transactionService.save(sourceTransaction);
+        sourceAccount.getTransactionList().add(sourceTransaction);
+        System.out.println(sourceAccount.getTransactionList());
         String debitMessage = "Dear "+ sourceAccount.getFirstName() + " A debit transaction occurred on your account." +
-                "\"Amount: " + request.getAmount() +
-                "\nCurrent balance: "  + sourceAccount.getAccountBalance() +
-                "\nDestination: " + destinationAccount.getFirstName() + " " + destinationAccount.getLastName() +
-                "\nDate: " + LocalDate.now() +
-                "\nTime: " + LocalTime.now();
-
+                "\"Amount: " + request.getAmount() + "\nCurrent balance: "  + sourceAccount.getAccountBalance() +
+                "\nDestination: " + destinationAccount.getFirstName() + " " + destinationAccount.getLastName() + "\nDate: " + LocalDate.now() +  "\nTime: " + LocalTime.now();
+        Transaction destinationTransaction = Transaction.builder()
+                .type(CREDIT).amount(request.getAmount()).accountNumber(sourceAccount.getAccountNumber())
+                .customer(destinationAccount).status(SUCCESS).date(LocalDate.now()).time(LocalTime.now()).build();
+        transactionService.save(destinationTransaction);
+        destinationAccount.getTransactionList().add(destinationTransaction);
+        System.out.println(destinationAccount.getTransactionList());
         EmailDetails debitDetails = mailMessage(sourceAccount, "Debit transaction notification", sourceAccount.getEmail(), debitMessage);
         emailSenderService.sendMail(debitDetails);
         String creditMessage = "Dear "+ destinationAccount.getFirstName() + " A credit transaction occurred on your account." +
-                "\"Amount: " + request.getAmount() +
-                "\nCurrent balance: "  + destinationAccount.getAccountBalance() +
-                "\nFrom: " + sourceAccount.getFirstName() + " " + sourceAccount.getLastName() +
-                "\nDate: " + LocalDate.now() +
-                "\nTime: " + LocalTime.now();
+                "\"Amount: " + request.getAmount() + "\nCurrent balance: "  + destinationAccount.getAccountBalance() +
+                "\nFrom: " + sourceAccount.getFirstName() + " " + sourceAccount.getLastName() + "\nDate: " + LocalDate.now() + "\nTime: " + LocalTime.now();
 
         EmailDetails creditDetails = mailMessage(sourceAccount, "Credit transaction notification", destinationAccount.getEmail(), creditMessage);
         emailSenderService.sendMail(creditDetails);

@@ -1,5 +1,6 @@
 package com.system.moneybank.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,6 +33,7 @@ public class Transaction {
     private LocalTime time;
     @Enumerated(value = EnumType.STRING)
     private TransactionStatus status;
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "cutomer_id")
     private Customer customer;
