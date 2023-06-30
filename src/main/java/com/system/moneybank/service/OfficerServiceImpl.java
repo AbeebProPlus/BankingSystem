@@ -3,8 +3,12 @@ package com.system.moneybank.service;
 import com.system.moneybank.dtos.request.CreateAccountRequest;
 import com.system.moneybank.dtos.request.CreditDebitRequest;
 import com.system.moneybank.dtos.request.EnquiryRequest;
+import com.system.moneybank.dtos.request.TransactionHistoryRequest;
 import com.system.moneybank.dtos.response.Response;
+import com.system.moneybank.dtos.response.TransactionHistoryResponse;
+import com.system.moneybank.exceptions.CustomerNotFound;
 import com.system.moneybank.models.AccountDetails;
+import com.system.moneybank.models.BankingHallTransaction;
 import com.system.moneybank.models.Customer;
 import com.system.moneybank.service.emailService.EmailDetails;
 import com.system.moneybank.service.emailService.EmailSenderService;
@@ -16,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 import static com.system.moneybank.models.AccountStatus.ACTIVE;
 import static com.system.moneybank.utils.AccountUtils.*;
@@ -27,7 +32,7 @@ import static java.math.BigDecimal.ZERO;
 public class OfficerServiceImpl implements OfficerService{
     private final UserService userService;
     private final EmailSenderService emailSenderService;
-//    private final TransactionService transactionService;
+    private final TransactionService transactionService;
 
     @Override
     public Response createBankAccount(CreateAccountRequest request) {
@@ -90,6 +95,23 @@ public class OfficerServiceImpl implements OfficerService{
         Customer user = userService.findByAccountNumber(enquiryRequest.getAccountNumber());
         return user.getFirstName() + " " + user.getLastName() + " " + user.getMiddleName();
     }
+
+    @Override
+    public TransactionHistoryResponse getAllTransactionsDoneByCustomer(TransactionHistoryRequest request) {
+        try {
+            Customer customer = userService.findByAccountNumber(request.getAccountNumber());
+            if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
+            return TransactionHistoryResponse.builder().code(ACCOUNT_FOUND_CODE).message(ACCOUNT_FOUND_MESSAGE).transactionList(customer.getTransactionList()).build();
+        } catch (Exception ex) {
+            return TransactionHistoryResponse.builder().code(ACCOUNT_NOT_FOUND_CODE).message(ex.getMessage()).transactionList(null).build();
+        }
+    }
+
+    @Override
+    public List<BankingHallTransaction> viewAllBankingHallTransactions() {
+        return transactionService.viewAllBankingHallTransactions();
+    }
+
 
     private Customer creditUser(CreditDebitRequest request) {
         Customer userToBeCredited = userService.findByAccountNumber(request.getAccountNumber());

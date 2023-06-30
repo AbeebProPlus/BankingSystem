@@ -3,8 +3,10 @@ package com.system.moneybank.service;
 
 import com.system.moneybank.dtos.response.FoundTransactionResponse;
 import com.system.moneybank.exceptions.TransactionNotFoundException;
+import com.system.moneybank.models.BankingHallTransaction;
 import com.system.moneybank.models.Customer;
 import com.system.moneybank.models.Transaction;
+import com.system.moneybank.repository.BankingHallTransactionRepo;
 import com.system.moneybank.repository.TransactionRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import static com.system.moneybank.utils.AccountUtils.*;
 public class TransactionServiceImpl implements TransactionService{
 
     private final TransactionRepo transactionRepo;
+    private final BankingHallTransactionRepo bankingHallTransactionRepo;
 
     @Override
     public Transaction save(Transaction transaction) {
@@ -37,6 +40,11 @@ public class TransactionServiceImpl implements TransactionService{
             return FoundTransactionResponse.builder().code(TRANSACTION_NOT_FOUND_CODE).message(ex.getMessage())
                     .transaction(null).build();
         }
+    }
+
+    @Override
+    public List<BankingHallTransaction> viewAllBankingHallTransactions() {
+        return bankingHallTransactionRepo.findAll();
     }
 
 }

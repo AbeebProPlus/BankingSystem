@@ -35,14 +35,6 @@ public class UserServiceImpl implements  UserService{
     private final EmailSenderService emailSenderService;
 
 
-    private EmailDetails mailMessage(Customer savedUser, String subject, String email, String message) {
-        return EmailDetails.builder()
-                .subject(subject)
-                .recipientMailAddress(email)
-                .message(message)
-                .build();
-    }
-
     @Override
     public Response checkAccountBalance(EnquiryRequest enquiryRequest) {
         if (!isValidAccountNumber(enquiryRequest)) return Response.builder().code(ACCOUNT_NOT_FOUND_CODE).message(ACCOUNT_NOT_FOUND_MESSAGE).build();
@@ -120,6 +112,13 @@ public class UserServiceImpl implements  UserService{
         return userRepo.save(customer);
     }
 
+    private EmailDetails mailMessage(Customer savedUser, String subject, String email, String message) {
+        return EmailDetails.builder()
+                .subject(subject)
+                .recipientMailAddress(email)
+                .message(message)
+                .build();
+    }
 
     private boolean isValidAccountNumber(EnquiryRequest enquiryRequest) {
         return userRepo.existsByAccountNumber(enquiryRequest.getAccountNumber());

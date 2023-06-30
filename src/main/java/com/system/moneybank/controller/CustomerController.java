@@ -15,9 +15,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/customer/")
 @Tag(name = "Customer Account API's")
-public class UserController{
+public class CustomerController {
     private final UserService userService;
-
 
     @Operation(
             summary = "Gets account balance",

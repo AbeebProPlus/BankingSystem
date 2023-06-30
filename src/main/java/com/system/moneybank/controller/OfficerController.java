@@ -4,6 +4,7 @@ package com.system.moneybank.controller;
 import com.system.moneybank.dtos.request.CreateAccountRequest;
 import com.system.moneybank.dtos.request.CreditDebitRequest;
 import com.system.moneybank.dtos.request.EnquiryRequest;
+import com.system.moneybank.dtos.request.TransactionHistoryRequest;
 import com.system.moneybank.service.OfficerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -51,6 +52,14 @@ public class OfficerController {
     @PostMapping("debit")
     public ResponseEntity<?> debitAccount(@RequestBody CreditDebitRequest request){
         return new ResponseEntity<>(officerService.debitAccount(request), HttpStatus.OK);
+    }
+    @GetMapping("transaction_history")
+    public ResponseEntity<?> getCustomerTransactions(@RequestBody TransactionHistoryRequest request){
+        return new ResponseEntity<>(officerService.getAllTransactionsDoneByCustomer(request), HttpStatus.OK);
+    }
+    @GetMapping("transaction_history")
+    public ResponseEntity<?> viewAllBankingHallTransactions(){
+        return new ResponseEntity<>(officerService.viewAllBankingHallTransactions(), HttpStatus.OK);
     }
 
 }
