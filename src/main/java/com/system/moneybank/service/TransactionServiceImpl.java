@@ -30,6 +30,11 @@ public class TransactionServiceImpl implements TransactionService{
     }
 
     @Override
+    public BankingHallTransaction saveTransaction(BankingHallTransaction bankingHallTransaction) {
+        return bankingHallTransactionRepo.save(bankingHallTransaction);
+    }
+
+    @Override
     public FoundTransactionResponse getATransactionDetails(String id) {
         try {
             Transaction transaction = transactionRepo.findById(id)

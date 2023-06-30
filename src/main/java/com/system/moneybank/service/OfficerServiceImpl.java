@@ -7,12 +7,13 @@ import com.system.moneybank.dtos.request.TransactionHistoryRequest;
 import com.system.moneybank.dtos.response.Response;
 import com.system.moneybank.dtos.response.TransactionHistoryResponse;
 import com.system.moneybank.exceptions.CustomerNotFound;
-import com.system.moneybank.models.AccountDetails;
-import com.system.moneybank.models.BankingHallTransaction;
-import com.system.moneybank.models.Customer;
+import com.system.moneybank.models.*;
+import com.system.moneybank.repository.BankingHallTransactionRepo;
+import com.system.moneybank.repository.OfficerRepo;
 import com.system.moneybank.service.emailService.EmailDetails;
 import com.system.moneybank.service.emailService.EmailSenderService;
 import com.system.moneybank.utils.AccountUtils;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,8 +22,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 import static com.system.moneybank.models.AccountStatus.ACTIVE;
+import static com.system.moneybank.models.TransactionStatus.SUCCESS;
+import static com.system.moneybank.models.TransactionType.CREDIT;
+import static com.system.moneybank.models.TransactionType.DEBIT;
 import static com.system.moneybank.utils.AccountUtils.*;
 import static com.system.moneybank.utils.AccountUtils.ACCOUNT_CREATION_MESSAGE;
 import static java.math.BigDecimal.ZERO;
@@ -33,6 +38,7 @@ public class OfficerServiceImpl implements OfficerService{
     private final UserService userService;
     private final EmailSenderService emailSenderService;
     private final TransactionService transactionService;
+    private final OfficerRepo officerRepo;
 
     @Override
     public Response createBankAccount(CreateAccountRequest request) {
@@ -61,13 +67,23 @@ public class OfficerServiceImpl implements OfficerService{
         if (!accountExists) return Response.builder().code(ACCOUNT_NOT_FOUND_CODE).message(ACCOUNT_NOT_FOUND_MESSAGE).build();
         if (isInValidAmount(request)) return Response.builder().code(ACCOUNT_CREDIT_DECLINED_CODE).message(ACCOUNT_CREDIT_DECLINED_MESSAGE).build();
         Customer creditedUser = creditUser(request);
-//        BankingHallTransaction bankingHallTransaction = B
+        Officer officer = officerRepo.findById(request.getOfficerId()).get();
+        BankingHallTransaction bankingHallTransaction = createTransaction(request, creditedUser, CREDIT, SUCCESS, officer);
+        transactionService.saveTransaction(bankingHallTransaction);
         String message = "Dear " + creditedUser.getFirstName() + "A credit transaction occurred on your account " +
                 "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + creditedUser.getAccountBalance() +
                 "\nFrom: " + request.getDepositorName() + "\nDate: " + LocalDate.now() + "\nTime: " + LocalTime.now();
         EmailDetails details = mailMessage(creditedUser, "Credit transaction notification", creditedUser.getEmail(), message);
         emailSenderService.sendMail(details);
         return transactionResponse(creditedUser, ACCOUNT_CREDITED_CODE, ACCOUNT_CREDITED_MESSAGE);
+    }
+
+    private BankingHallTransaction createTransaction(CreditDebitRequest request, Customer creditedUser,
+                                                     TransactionType type, TransactionStatus status, Officer officer) {
+        return BankingHallTransaction.builder()
+                .amount(request.getAmount()).accountNumber(creditedUser.getAccountNumber())
+                .processedBy(officer.getUserName()).type(type).status(status).date(LocalDate.now())
+                .time(LocalTime.now()).officer(officer).build();
     }
 
 
@@ -80,7 +96,9 @@ public class OfficerServiceImpl implements OfficerService{
         if (isInValidAmount(request)) return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
         if (request.getAmount().compareTo(amountInUserAccount) > 0) return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
         Customer debitedUser = debitUser(request);
-
+        Officer officer = officerRepo.findById(request.getOfficerId()).get();
+        BankingHallTransaction bankingHallTransaction = createTransaction(request, debitedUser, DEBIT, SUCCESS, officer);
+        transactionService.saveTransaction(bankingHallTransaction);
         String message = "Dear " + debitedUser.getFirstName() + " A debit transaction occurred on your account." +
                 "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + debitedUser.getAccountBalance() + "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
         EmailDetails details = mailMessage(debitedUser, "Debit transaction notification", debitedUser.getEmail(), message);
@@ -159,5 +177,21 @@ public class OfficerServiceImpl implements OfficerService{
                 .accountBalance(savedUser.getAccountBalance())
                 .accountNumber(savedUser.getAccountNumber())
                 .build();
+    }
+
+    @PostConstruct
+    private void createOfficer() {
+        if (!officerExists("AdebayoCustomerCare1")) {
+            Officer officer = Officer.builder()
+                    .userName("AdebayoCustomerCare1")
+                    .role(Role.OFFICER)
+                    .build();
+            officerRepo.save(officer);
+        }
+    }
+
+    private boolean officerExists(String userName) {
+        Optional<Officer> officer = officerRepo.findByUserName(userName);
+        return officer.isPresent();
     }
 }

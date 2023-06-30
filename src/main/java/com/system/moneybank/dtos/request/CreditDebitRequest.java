@@ -15,4 +15,5 @@ public class CreditDebitRequest {
     private BigDecimal amount;
     private String accountNumber;
     private String depositorName;
+    private String officerId;
 }

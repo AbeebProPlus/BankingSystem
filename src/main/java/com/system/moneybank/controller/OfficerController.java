@@ -57,7 +57,7 @@ public class OfficerController {
     public ResponseEntity<?> getCustomerTransactions(@RequestBody TransactionHistoryRequest request){
         return new ResponseEntity<>(officerService.getAllTransactionsDoneByCustomer(request), HttpStatus.OK);
     }
-    @GetMapping("transaction_history")
+    @GetMapping("all_transactions")
     public ResponseEntity<?> viewAllBankingHallTransactions(){
         return new ResponseEntity<>(officerService.viewAllBankingHallTransactions(), HttpStatus.OK);
     }

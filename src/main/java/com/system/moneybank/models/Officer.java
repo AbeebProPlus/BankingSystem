@@ -16,8 +16,7 @@ public class Officer {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
-    private String firstName;
-    private String lastName;
+    private String userName;
     @Enumerated(value = EnumType.STRING)
     private Role role = Role.OFFICER;
     @OneToMany(mappedBy = "officer", fetch = FetchType.LAZY)

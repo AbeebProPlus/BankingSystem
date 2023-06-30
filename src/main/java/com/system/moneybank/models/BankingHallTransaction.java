@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+import static com.system.moneybank.models.TransactionStatus.PENDING;
 import static jakarta.persistence.GenerationType.UUID;
 
 @Data
@@ -30,7 +31,7 @@ public class BankingHallTransaction {
     private LocalDate date;
     private LocalTime time;
     @Enumerated(value = EnumType.STRING)
-    private TransactionStatus status;
+    private TransactionStatus status = PENDING;
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "officer_id")
