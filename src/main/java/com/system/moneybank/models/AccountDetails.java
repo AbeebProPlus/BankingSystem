@@ -14,15 +14,15 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class AccountDetails {
     @Schema(
-            name = "User account name"
+            name = "Customer account name"
     )
     private String accountName;
     @Schema(
-            name = "User account number"
+            name = "Customer account number"
     )
     private String accountNumber;
     @Schema(
-            name = "User account balance "
+            name = "Customer account balance "
     )
     private BigDecimal accountBalance;
 }

@@ -10,12 +10,12 @@ public class AccountUtils {
     public static final String ACCOUNT_CREATION_MESSAGE = "Account was successfully created";
 
     public static final String ACCOUNT_NOT_FOUND_CODE = "003";
-    public static final String ACCOUNT_NOT_FOUND_MESSAGE = "User account not found";
+    public static final String ACCOUNT_NOT_FOUND_MESSAGE = "Customer account not found";
     public static final String ACCOUNT_FOUND_CODE = "004";
-    public static final String ACCOUNT_FOUND_MESSAGE = "User account found";
+    public static final String ACCOUNT_FOUND_MESSAGE = "Customer account found";
 
     public static final String ACCOUNT_CREDITED_CODE = "005";
-    public static final String ACCOUNT_CREDITED_MESSAGE = "User account credited successfully";
+    public static final String ACCOUNT_CREDITED_MESSAGE = "Customer account credited successfully";
 
     public static final String ACCOUNT_CREDIT_DECLINED_CODE = "006";
     public static final String ACCOUNT_CREDIT_DECLINED_MESSAGE = "Invalid amount";

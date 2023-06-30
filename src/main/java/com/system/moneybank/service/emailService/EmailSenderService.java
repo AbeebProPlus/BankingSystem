@@ -1,5 +1,5 @@
 package com.system.moneybank.service.emailService;
 
-public interface EmailService {
+public interface EmailSenderService {
     void sendMail(EmailDetails emailDetails);
 }

@@ -14,4 +14,5 @@ import java.math.BigDecimal;
 public class CreditDebitRequest {
     private BigDecimal amount;
     private String accountNumber;
+    private String depositorName;
 }

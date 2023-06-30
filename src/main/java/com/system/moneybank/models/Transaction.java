@@ -32,4 +32,7 @@ public class Transaction {
     private LocalTime time;
     @Enumerated(value = EnumType.STRING)
     private TransactionStatus status;
+    @ManyToOne
+    @JoinColumn(name = "cutomer_id")
+    private Customer customer;
 }
