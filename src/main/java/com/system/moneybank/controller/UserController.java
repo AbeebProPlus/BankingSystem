@@ -1,16 +1,15 @@
 package com.system.moneybank.controller;
 
-import com.system.moneybank.dtos.request.CreateAccountRequest;
-import com.system.moneybank.dtos.request.CreditDebitRequest;
-import com.system.moneybank.dtos.request.EnquiryRequest;
-import com.system.moneybank.dtos.request.TransferRequest;
-import com.system.moneybank.dtos.response.Response;
+import com.system.moneybank.dtos.request.*;
 import com.system.moneybank.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -28,8 +27,8 @@ public class UserController{
             description = "CREATED"
     )
     @PostMapping("new_account")
-    public Response createAccount(@RequestBody CreateAccountRequest request){
-        return userService.createBankAccount(request);
+    public ResponseEntity<?> createAccount(@RequestBody CreateAccountRequest request){
+        return new ResponseEntity<>(userService.createBankAccount(request), HttpStatus.OK);
     }
 
     @Operation(
@@ -42,23 +41,27 @@ public class UserController{
     )
 
     @GetMapping("account_balance")
-    public Response checkAccountBalance(@RequestBody EnquiryRequest request){
-        return userService.checkAccountBalance(request);
+    public ResponseEntity<?> checkAccountBalance(@RequestBody EnquiryRequest request){
+        return new ResponseEntity<>(userService.checkAccountBalance(request), HttpStatus.OK);
     }
     @GetMapping("account_name")
-    public String checkAccountName(@RequestBody EnquiryRequest request){
-        return userService.checkAccountName(request);
+    public ResponseEntity<?> checkAccountName(@RequestBody EnquiryRequest request){
+        return new ResponseEntity<>(userService.checkAccountName(request), HttpStatus.OK);
     }
     @PostMapping("credit")
-    public Response creditAccount(@RequestBody CreditDebitRequest request){
-        return userService.creditAccount(request);
+    public ResponseEntity<?> creditAccount(@RequestBody CreditDebitRequest request){
+        return new ResponseEntity<>(userService.creditAccount(request), HttpStatus.OK);
     }
     @PostMapping("debit")
-    public Response debitAccount(@RequestBody CreditDebitRequest request){
-        return userService.debitAccount(request);
+    public ResponseEntity<?> debitAccount(@RequestBody CreditDebitRequest request){
+        return new ResponseEntity<>(userService.debitAccount(request), HttpStatus.OK);
     }
     @PostMapping("transfer")
-    public Response transfer(@RequestBody TransferRequest request){
-        return userService.transfer(request);
+    public ResponseEntity<?> transfer(@RequestBody TransferRequest request){
+        return new ResponseEntity<>(userService.transfer(request), HttpStatus.OK);
+    }
+    @GetMapping("transaction_history")
+    public ResponseEntity<?> getCustomerTransactions(@RequestBody TransactionHistoryRequest request){
+        return new ResponseEntity<>(userService.getAllTransactionsDoneByCustomer(request), HttpStatus.OK);
     }
 }

@@ -29,8 +29,11 @@ public class AccountUtils {
     public static final String TRANSFER_SUCCESS_CODE = "009";
     public static final String TRANSFER_SUCCESS_MESSAGE = "Transaction successful";
 
-//    public static final String TRANSFER_FAILURE_CODE = "010";
-//    public static final String TRANSFER_FAILURE_MESSAGE = "Transaction failed";
+    public static final String TRANSACTION_FOUND_CODE = "010";
+    public static final String TRANSACTION_FOUND_MESSAGE = "Transaction found";
+
+    public static final String TRANSACTION_NOT_FOUND_CODE = "011";
+    public static final String TRANSACTION_NOT_FOUND_MESSAGE = "Transaction not found or didn't occur";
     public static final String INVALID_DESTINATION_MESSAGE = "Destination account does not exist";
 
 

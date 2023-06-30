@@ -1,10 +1,11 @@
 package com.system.moneybank.service;
 
-import com.system.moneybank.dtos.request.CreateAccountRequest;
-import com.system.moneybank.dtos.request.CreditDebitRequest;
-import com.system.moneybank.dtos.request.EnquiryRequest;
-import com.system.moneybank.dtos.request.TransferRequest;
+import com.system.moneybank.dtos.request.*;
 import com.system.moneybank.dtos.response.Response;
+import com.system.moneybank.dtos.response.TransactionHistoryResponse;
+import com.system.moneybank.models.Transaction;
+
+import java.util.List;
 
 public interface UserService {
     Response createBankAccount(CreateAccountRequest request) ;
@@ -13,4 +14,5 @@ public interface UserService {
     Response creditAccount(CreditDebitRequest request);
     Response debitAccount(CreditDebitRequest request);
     Response transfer(TransferRequest request);
+    TransactionHistoryResponse getAllTransactionsDoneByCustomer(TransactionHistoryRequest request);
 }

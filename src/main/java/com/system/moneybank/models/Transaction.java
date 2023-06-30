@@ -37,4 +37,5 @@ public class Transaction {
     @ManyToOne
     @JoinColumn(name = "cutomer_id")
     private Customer customer;
+    private String processedBy;
 }
