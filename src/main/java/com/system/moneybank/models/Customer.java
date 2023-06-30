@@ -24,6 +24,8 @@ public class Customer {
     private String firstName;
     private String lastName;
     private String middleName;
+    @Enumerated(value = EnumType.STRING)
+    private Role role = Role.CUSTOMER;
     private String email;
     private String phoneNumber;
     private String secondPhoneNumber;
