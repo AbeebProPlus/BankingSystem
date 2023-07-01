@@ -11,6 +11,8 @@ import com.system.moneybank.models.*;
 import com.system.moneybank.repository.OfficerRepo;
 import com.system.moneybank.service.emailService.EmailDetails;
 import com.system.moneybank.service.emailService.EmailSenderService;
+import com.system.moneybank.service.smsService.Sms;
+import com.system.moneybank.service.smsService.SmsService;
 import com.system.moneybank.utils.AccountUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,7 @@ public class OfficerServiceImpl implements OfficerService{
     private final EmailSenderService emailSenderService;
     private final TransactionService transactionService;
     private final OfficerRepo officerRepo;
+    private final SmsService smsService;
 
     @Override
     public Response createBankAccount(CreateAccountRequest request) {
@@ -73,6 +76,8 @@ public class OfficerServiceImpl implements OfficerService{
         String message = "Dear " + creditedUser.getFirstName() + "A credit transaction occurred on your account " +
                 "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + creditedUser.getAccountBalance() +
                 "\nFrom: " + request.getDepositorName() + "\nDate: " + LocalDate.now() + "\nTime: " + LocalTime.now();
+        Sms sms = Sms.builder().to(creditedUser.getPhoneNumber()).message(message).build();
+        smsService.sendSms(sms);
         EmailDetails details = mailMessage(creditedUser, "Credit transaction notification", creditedUser.getEmail(), message);
         emailSenderService.sendMail(details);
         return transactionResponse(creditedUser, ACCOUNT_CREDITED_CODE, ACCOUNT_CREDITED_MESSAGE);

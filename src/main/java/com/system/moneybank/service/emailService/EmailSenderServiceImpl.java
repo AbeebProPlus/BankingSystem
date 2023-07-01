@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EmailSenderServiceImpl implements EmailSenderService {
     private final JavaMailSender mailSender;
-    @Value("${spring.mail.username}")
+    @Value("spring.mail.username")
     private String from;
     @Override
     public void sendMail(EmailDetails emailDetails) {
