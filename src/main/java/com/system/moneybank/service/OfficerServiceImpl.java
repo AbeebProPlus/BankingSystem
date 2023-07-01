@@ -1,14 +1,13 @@
 package com.system.moneybank.service;
 
-import com.system.moneybank.dtos.request.CreateAccountRequest;
-import com.system.moneybank.dtos.request.CreditDebitRequest;
-import com.system.moneybank.dtos.request.EnquiryRequest;
-import com.system.moneybank.dtos.request.TransactionHistoryRequest;
+import com.system.moneybank.dtos.request.*;
 import com.system.moneybank.dtos.response.Response;
+import com.system.moneybank.dtos.response.RestrictAccountResponse;
 import com.system.moneybank.dtos.response.TransactionHistoryResponse;
 import com.system.moneybank.exceptions.CustomerNotFound;
+import com.system.moneybank.exceptions.OfficerNotFoundException;
+import com.system.moneybank.exceptions.RestrictedAccountException;
 import com.system.moneybank.models.*;
-import com.system.moneybank.repository.BankingHallTransactionRepo;
 import com.system.moneybank.repository.OfficerRepo;
 import com.system.moneybank.service.emailService.EmailDetails;
 import com.system.moneybank.service.emailService.EmailSenderService;
@@ -25,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.system.moneybank.models.AccountStatus.ACTIVE;
+import static com.system.moneybank.models.AccountStatus.RESTRICTED;
 import static com.system.moneybank.models.TransactionStatus.SUCCESS;
 import static com.system.moneybank.models.TransactionType.CREDIT;
 import static com.system.moneybank.models.TransactionType.DEBIT;
@@ -67,7 +67,7 @@ public class OfficerServiceImpl implements OfficerService{
         if (!accountExists) return Response.builder().code(ACCOUNT_NOT_FOUND_CODE).message(ACCOUNT_NOT_FOUND_MESSAGE).build();
         if (isInValidAmount(request)) return Response.builder().code(ACCOUNT_CREDIT_DECLINED_CODE).message(ACCOUNT_CREDIT_DECLINED_MESSAGE).build();
         Customer creditedUser = creditUser(request);
-        Officer officer = officerRepo.findById(request.getOfficerId()).get();
+        Officer officer = officerRepo.findById(request.getOfficerId()).orElseThrow(() -> new OfficerNotFoundException("Officer not found"));
         BankingHallTransaction bankingHallTransaction = createTransaction(request, creditedUser, CREDIT, SUCCESS, officer);
         transactionService.saveTransaction(bankingHallTransaction);
         String message = "Dear " + creditedUser.getFirstName() + "A credit transaction occurred on your account " +
@@ -96,7 +96,7 @@ public class OfficerServiceImpl implements OfficerService{
         if (isInValidAmount(request)) return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
         if (request.getAmount().compareTo(amountInUserAccount) > 0) return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
         Customer debitedUser = debitUser(request);
-        Officer officer = officerRepo.findById(request.getOfficerId()).get();
+        Officer officer = officerRepo.findById(request.getOfficerId()).orElseThrow(() -> new OfficerNotFoundException("Officer not found"));
         BankingHallTransaction bankingHallTransaction = createTransaction(request, debitedUser, DEBIT, SUCCESS, officer);
         transactionService.saveTransaction(bankingHallTransaction);
         String message = "Dear " + debitedUser.getFirstName() + " A debit transaction occurred on your account." +
@@ -130,15 +130,31 @@ public class OfficerServiceImpl implements OfficerService{
         return transactionService.viewAllBankingHallTransactions();
     }
 
+    @Override
+    public RestrictAccountResponse restrictBankAccount(RestrictAccountRequest request) {
+        try {
+            Customer customer = userService.findByAccountNumber(request.getAccountNumber());
+            if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
+            customer.setAccountStatus(RESTRICTED);
+            userService.save(customer);
+            return RestrictAccountResponse.builder().message("ACCOUNT IS NOW RESTRICTED").build();
+        }catch (Exception ex){
+            return RestrictAccountResponse.builder().message(ex.getMessage()).build();
+        }
+    }
+
 
     private Customer creditUser(CreditDebitRequest request) {
         Customer userToBeCredited = userService.findByAccountNumber(request.getAccountNumber());
+        if (userToBeCredited.getAccountStatus().equals(RESTRICTED)) throw new RestrictedAccountException("THIS ACCOUNT WAS RESTRICTED");
         BigDecimal userToBeCreditedBalance = userToBeCredited.getAccountBalance();
         userToBeCredited.setAccountBalance(userToBeCreditedBalance.add(request.getAmount()));
         return userService.save(userToBeCredited);
     }
     private Customer debitUser(CreditDebitRequest request){
         Customer userToBeDebited = userService.findByAccountNumber(request.getAccountNumber());
+        if (userToBeDebited.getAccountStatus().equals(RESTRICTED))
+            throw new RestrictedAccountException("THIS ACCOUNT WAS RESTRICTED");
         BigDecimal userToBeDebitedBalance = userToBeDebited.getAccountBalance();
         userToBeDebited.setAccountBalance(userToBeDebitedBalance.subtract(request.getAmount()));
         return userService.save(userToBeDebited);

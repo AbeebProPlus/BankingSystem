@@ -4,6 +4,7 @@ import com.system.moneybank.dtos.request.*;
 import com.system.moneybank.dtos.response.Response;
 import com.system.moneybank.dtos.response.TransactionHistoryResponse;
 import com.system.moneybank.exceptions.CustomerNotFound;
+import com.system.moneybank.exceptions.RestrictedAccountException;
 import com.system.moneybank.models.AccountDetails;
 import com.system.moneybank.models.Customer;
 import com.system.moneybank.models.Transaction;
@@ -20,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import static com.system.moneybank.models.AccountStatus.ACTIVE;
+import static com.system.moneybank.models.AccountStatus.RESTRICTED;
 import static com.system.moneybank.models.TransactionStatus.SUCCESS;
 import static com.system.moneybank.models.TransactionType.CREDIT;
 import static com.system.moneybank.models.TransactionType.DEBIT;
@@ -48,10 +50,14 @@ public class UserServiceImpl implements  UserService{
         boolean isValidDestination = userRepo.existsByAccountNumber(request.getDestinationAccountNumber());
         if (!isValidDestination) return Response.builder().code(ACCOUNT_NOT_FOUND_CODE).message(INVALID_DESTINATION_MESSAGE).build();
         Customer sourceAccount = userRepo.findByAccountNumber(request.getSourceAccountNumber());
+        if (sourceAccount.getAccountStatus().equals(RESTRICTED))
+            throw new RestrictedAccountException("SOURCE ACCOUNT WAS RESTRICTED");
         if (request.getAmount().compareTo(sourceAccount.getAccountBalance()) > 0)return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
         BigDecimal debitedAmount = request.getAmount();
         sourceAccount.setAccountBalance(sourceAccount.getAccountBalance().subtract(debitedAmount));
         Customer destinationAccount = userRepo.findByAccountNumber(request.getDestinationAccountNumber());
+        if (destinationAccount.getAccountStatus().equals(RESTRICTED))
+            throw new RestrictedAccountException("DESTINATION ACCOUNT WAS RESTRICTED");
         BigDecimal updatedDestinationBalance = destinationAccount.getAccountBalance().add(debitedAmount);
         destinationAccount.setAccountBalance(updatedDestinationBalance);
 
