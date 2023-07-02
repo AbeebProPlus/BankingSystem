@@ -68,7 +68,7 @@ public class UserServiceImpl implements  UserService{
                 .processedBy("SELF").build();
         transactionService.save(sourceTransaction);
         sourceAccount.getTransactionList().add(sourceTransaction);
-        String debitMessage = "Dear "+ sourceAccount.getFirstName() + " A debit transaction occurred on your account." +
+        String debitMessage = "\nDear "+ sourceAccount.getFirstName() + "\nA debit transaction occurred on your account." +
                 "\"Amount: " + request.getAmount() + "\nCurrent balance: "  + sourceAccount.getAccountBalance() +
                 "\nDestination: " + destinationAccount.getFirstName() + " " + destinationAccount.getLastName() + "\nDate: " + LocalDate.now() +  "\nTime: " + LocalTime.now();
         Transaction destinationTransaction = Transaction.builder().type(CREDIT).amount(request.getAmount()).accountNumber(sourceAccount.getAccountNumber())
@@ -78,7 +78,7 @@ public class UserServiceImpl implements  UserService{
         destinationAccount.getTransactionList().add(destinationTransaction);
         EmailDetails debitDetails = mailMessage(sourceAccount, "Debit transaction notification", sourceAccount.getEmail(), debitMessage);
         emailSenderService.sendMail(debitDetails);
-        String creditMessage = "Dear "+ destinationAccount.getFirstName() + " A credit transaction occurred on your account." +
+        String creditMessage = "\nDear "+ destinationAccount.getFirstName() + "\nA credit transaction occurred on your account." +
                 "\"Amount: " + request.getAmount() + "\nCurrent balance: "  + destinationAccount.getAccountBalance() +
                 "\nFrom: " + sourceAccount.getFirstName() + " " + sourceAccount.getLastName() + "\nDate: " + LocalDate.now() + "\nTime: " + LocalTime.now();
 

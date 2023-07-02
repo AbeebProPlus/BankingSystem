@@ -6,6 +6,7 @@ import com.system.moneybank.service.OfficerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +29,7 @@ public class OfficerController {
             description = "CREATED"
     )
     @PostMapping("new_account")
-    public ResponseEntity<?> createAccount(@RequestBody CreateAccountRequest request){
+    public ResponseEntity<?> createAccount(@Valid @RequestBody CreateAccountRequest request){
         return new ResponseEntity<>(officerService.createBankAccount(request), HttpStatus.OK);
     }
 

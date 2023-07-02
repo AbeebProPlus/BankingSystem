@@ -1,6 +1,7 @@
 package com.system.moneybank.models;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 import java.util.ArrayList;
@@ -16,9 +17,16 @@ public class Officer {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+
+    @NotBlank(message = "Username is required")
     private String userName;
+
+    @NotBlank
+    private String password;
+
     @Enumerated(value = EnumType.STRING)
-    private Role role = Role.OFFICER;
+    private String role;
+
     @OneToMany(mappedBy = "officer", fetch = FetchType.LAZY)
     List<BankingHallTransaction> doneTransactions = new ArrayList<>();
 }

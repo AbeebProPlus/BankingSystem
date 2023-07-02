@@ -1,6 +1,7 @@
 package com.system.moneybank.service;
 
 import com.system.moneybank.dtos.request.*;
+import com.system.moneybank.dtos.response.AuthResponse;
 import com.system.moneybank.dtos.response.Response;
 import com.system.moneybank.dtos.response.RestrictAccountResponse;
 import com.system.moneybank.dtos.response.TransactionHistoryResponse;
@@ -11,11 +12,16 @@ import com.system.moneybank.models.*;
 import com.system.moneybank.repository.OfficerRepo;
 import com.system.moneybank.service.emailService.EmailDetails;
 import com.system.moneybank.service.emailService.EmailSenderService;
+import com.system.moneybank.service.security.JwtService;
 import com.system.moneybank.service.smsService.Sms;
 import com.system.moneybank.service.smsService.SmsService;
 import com.system.moneybank.utils.AccountUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -40,8 +46,32 @@ public class OfficerServiceImpl implements OfficerService{
     private final UserService userService;
     private final EmailSenderService emailSenderService;
     private final TransactionService transactionService;
+    private final AuthenticationManager authenticationManager;
+    private final JwtService jwtService;
     private final OfficerRepo officerRepo;
     private final SmsService smsService;
+
+    @Override
+    public AuthResponse authenticateAndGetToken(AuthRequest authRequest) {
+        try {
+            String token;
+            Authentication authentication =
+                    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequest.getUserName(),
+                            authRequest.getPassword()));
+            if (authentication.isAuthenticated()) token = jwtService.generateToken(authRequest.getUserName());
+            else throw new IllegalArgumentException("User not found");
+            return AuthResponse.builder()
+                    .message("Authentication successful")
+                    .status(HttpStatus.OK)
+                    .token(token)
+                    .build();
+        }catch (Exception ex){
+            return AuthResponse.builder()
+                    .message("Invalid userName or password")
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build();
+        }
+    }
 
     @Override
     public Response createBankAccount(CreateAccountRequest request) {
@@ -73,7 +103,7 @@ public class OfficerServiceImpl implements OfficerService{
         Officer officer = officerRepo.findById(request.getOfficerId()).orElseThrow(() -> new OfficerNotFoundException("Officer not found"));
         BankingHallTransaction bankingHallTransaction = createTransaction(request, creditedUser, CREDIT, SUCCESS, officer);
         transactionService.saveTransaction(bankingHallTransaction);
-        String message = "Dear " + creditedUser.getFirstName() + "A credit transaction occurred on your account " +
+        String message = "\nDear " + creditedUser.getFirstName() + "\nA credit transaction occurred on your account " +
                 "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + creditedUser.getAccountBalance() +
                 "\nFrom: " + request.getDepositorName() + "\nDate: " + LocalDate.now() + "\nTime: " + LocalTime.now();
         Sms sms = Sms.builder().to(creditedUser.getPhoneNumber()).message(message).build();
@@ -104,7 +134,7 @@ public class OfficerServiceImpl implements OfficerService{
         Officer officer = officerRepo.findById(request.getOfficerId()).orElseThrow(() -> new OfficerNotFoundException("Officer not found"));
         BankingHallTransaction bankingHallTransaction = createTransaction(request, debitedUser, DEBIT, SUCCESS, officer);
         transactionService.saveTransaction(bankingHallTransaction);
-        String message = "Dear " + debitedUser.getFirstName() + " A debit transaction occurred on your account." +
+        String message = "\nDear " + debitedUser.getFirstName() + " \nA debit transaction occurred on your account." +
                 "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + debitedUser.getAccountBalance() + "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
         EmailDetails details = mailMessage(debitedUser, "Debit transaction notification", debitedUser.getEmail(), message);
         emailSenderService.sendMail(details);
@@ -205,7 +235,7 @@ public class OfficerServiceImpl implements OfficerService{
         if (!officerExists("AdebayoCustomerCare1")) {
             Officer officer = Officer.builder()
                     .userName("AdebayoCustomerCare1")
-                    .role(Role.OFFICER)
+                    .role(String.valueOf(Role.OFFICER))
                     .build();
             officerRepo.save(officer);
         }
