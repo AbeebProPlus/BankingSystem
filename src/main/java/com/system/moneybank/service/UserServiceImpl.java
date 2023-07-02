@@ -8,31 +8,27 @@ import com.system.moneybank.exceptions.RestrictedAccountException;
 import com.system.moneybank.models.AccountDetails;
 import com.system.moneybank.models.Customer;
 import com.system.moneybank.models.Transaction;
-import com.system.moneybank.repository.UserRepo;
+import com.system.moneybank.repository.CustomerRepo;
 import com.system.moneybank.service.emailService.EmailDetails;
 import com.system.moneybank.service.emailService.EmailSenderService;
-import com.system.moneybank.utils.AccountUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-import static com.system.moneybank.models.AccountStatus.ACTIVE;
 import static com.system.moneybank.models.AccountStatus.RESTRICTED;
 import static com.system.moneybank.models.TransactionStatus.SUCCESS;
 import static com.system.moneybank.models.TransactionType.CREDIT;
 import static com.system.moneybank.models.TransactionType.DEBIT;
 import static com.system.moneybank.utils.AccountUtils.*;
-import static java.math.BigDecimal.ZERO;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements  UserService{
 
-    private final UserRepo userRepo;
+    private final CustomerRepo userRepo;
     private final TransactionService transactionService;
     private final EmailSenderService emailSenderService;
 
@@ -116,6 +112,11 @@ public class UserServiceImpl implements  UserService{
     @Override
     public Customer save(Customer customer) {
         return userRepo.save(customer);
+    }
+
+    @Override
+    public boolean existsByPhoneNumber(String phoneNumber) {
+        return userRepo.existsByPhoneNumber(phoneNumber);
     }
 
     private EmailDetails mailMessage(Customer savedUser, String subject, String email, String message) {

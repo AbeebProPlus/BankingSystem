@@ -18,10 +18,10 @@ import com.system.moneybank.service.smsService.SmsService;
 import com.system.moneybank.utils.AccountUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -47,6 +47,7 @@ public class OfficerServiceImpl implements OfficerService{
     private final EmailSenderService emailSenderService;
     private final TransactionService transactionService;
     private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final OfficerRepo officerRepo;
     private final SmsService smsService;
@@ -62,13 +63,11 @@ public class OfficerServiceImpl implements OfficerService{
             else throw new IllegalArgumentException("User not found");
             return AuthResponse.builder()
                     .message("Authentication successful")
-                    .status(HttpStatus.OK)
                     .token(token)
                     .build();
         }catch (Exception ex){
             return AuthResponse.builder()
-                    .message("Invalid userName or password")
-                    .status(HttpStatus.BAD_REQUEST)
+                    .message(ex.getMessage())
                     .build();
         }
     }
@@ -76,8 +75,8 @@ public class OfficerServiceImpl implements OfficerService{
     @Override
     public Response createBankAccount(CreateAccountRequest request) {
         if (accountExists(request)) return Response.builder().code(ACCOUNT_EXISTS_CODE).message(ACCOUNT_EXISTS_MESSAGE).build();
-        Customer user = createUser(request);
-        Customer savedUser = userService.save(user);
+        Customer customer = createCustomer(request);
+        Customer savedUser = userService.save(customer);
         String message = "Dear " + savedUser.getFirstName() + " you now have an account with Lemonade Bank." +
                 "\nAccount name: " + savedUser.getFirstName() + " " + savedUser.getLastName() + " " + savedUser.getMiddleName() +
                 "\nAccount number: " + savedUser.getAccountNumber() + "\nDate: " + LocalDate.now() +
@@ -154,6 +153,7 @@ public class OfficerServiceImpl implements OfficerService{
         try {
             Customer customer = userService.findByAccountNumber(request.getAccountNumber());
             if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
+            if (customer.getTransactionList().size()==0) return TransactionHistoryResponse.builder().code(ACCOUNT_FOUND_CODE).message("No transactions").transactionList(customer.getTransactionList()).build();
             return TransactionHistoryResponse.builder().code(ACCOUNT_FOUND_CODE).message(ACCOUNT_FOUND_MESSAGE).transactionList(customer.getTransactionList()).build();
         } catch (Exception ex) {
             return TransactionHistoryResponse.builder().code(ACCOUNT_NOT_FOUND_CODE).message(ex.getMessage()).transactionList(null).build();
@@ -173,6 +173,19 @@ public class OfficerServiceImpl implements OfficerService{
             customer.setAccountStatus(RESTRICTED);
             userService.save(customer);
             return RestrictAccountResponse.builder().message("ACCOUNT IS NOW RESTRICTED").build();
+        }catch (Exception ex){
+            return RestrictAccountResponse.builder().message(ex.getMessage()).build();
+        }
+    }
+
+    @Override
+    public RestrictAccountResponse activateBankAccount(ActivateAccount request) {
+        try {
+            Customer customer = userService.findByAccountNumber(request.getAccountNumber());
+            if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
+            customer.setAccountStatus(ACTIVE);
+            userService.save(customer);
+            return RestrictAccountResponse.builder().message("ACCOUNT IS NOW ACTIVE").build();
         }catch (Exception ex){
             return RestrictAccountResponse.builder().message(ex.getMessage()).build();
         }
@@ -202,12 +215,13 @@ public class OfficerServiceImpl implements OfficerService{
     }
 
     private boolean accountExists(CreateAccountRequest request) {
-        return userService.existsByEmail(request.getEmail());
+        return userService.existsByEmail(request.getEmail()) || userService.existsByPhoneNumber(request.getPhoneNumber());
     }
-    private Customer createUser(CreateAccountRequest request) {
+    private Customer createCustomer(CreateAccountRequest request) {
         return Customer.builder().firstName(request.getFirstName()).lastName(request.getLastName()).middleName(request.getMiddleName())
                 .email(request.getEmail()).phoneNumber(request.getPhoneNumber()).secondPhoneNumber(request.getSecondPhoneNumber())
                 .address(request.getAddress()).gender(request.getGender())
+                .role(String.valueOf(Role.CUSTOMER))
                 .accountNumber(AccountUtils.generateAccountNumber()).accountBalance(ZERO).accountStatus(ACTIVE)
                 .build();
     }
@@ -234,7 +248,10 @@ public class OfficerServiceImpl implements OfficerService{
     private void createOfficer() {
         if (!officerExists("AdebayoCustomerCare1")) {
             Officer officer = Officer.builder()
+                    .firstName("Adebayo")
+                    .lastName("Aderibigbe")
                     .userName("AdebayoCustomerCare1")
+                    .password(passwordEncoder.encode("officer1"))
                     .role(String.valueOf(Role.OFFICER))
                     .build();
             officerRepo.save(officer);

@@ -16,4 +16,6 @@ public interface UserService {
     boolean existsByEmail(String email);
     Customer findByAccountNumber(String accountNumber);
     Customer save(Customer customer);
+
+    boolean existsByPhoneNumber(String phoneNumber);
 }

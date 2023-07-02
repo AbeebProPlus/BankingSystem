@@ -17,14 +17,16 @@ public class Officer {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
-
+    @NotBlank(message = "Fist name cannot be blank")
+    private String firstName;
+    @NotBlank(message = "Last name cannot be blank")
+    private String lastName;
     @NotBlank(message = "Username is required")
     private String userName;
 
-    @NotBlank
+    @NotBlank(message = "Username is required")
     private String password;
 
-    @Enumerated(value = EnumType.STRING)
     private String role;
 
     @OneToMany(mappedBy = "officer", fetch = FetchType.LAZY)

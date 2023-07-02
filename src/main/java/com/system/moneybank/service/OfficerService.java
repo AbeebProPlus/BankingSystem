@@ -19,4 +19,5 @@ public interface OfficerService {
     TransactionHistoryResponse getAllTransactionsDoneByCustomer(TransactionHistoryRequest request);
     List<BankingHallTransaction> viewAllBankingHallTransactions();
     RestrictAccountResponse restrictBankAccount(RestrictAccountRequest request);
+    RestrictAccountResponse activateBankAccount(ActivateAccount request);
 }
