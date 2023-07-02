@@ -1,10 +1,7 @@
 package com.system.moneybank.service;
 
 import com.system.moneybank.dtos.request.*;
-import com.system.moneybank.dtos.response.AuthResponse;
-import com.system.moneybank.dtos.response.Response;
-import com.system.moneybank.dtos.response.RestrictAccountResponse;
-import com.system.moneybank.dtos.response.TransactionHistoryResponse;
+import com.system.moneybank.dtos.response.*;
 import com.system.moneybank.exceptions.CustomerNotFound;
 import com.system.moneybank.exceptions.OfficerNotFoundException;
 import com.system.moneybank.exceptions.RestrictedAccountException;
@@ -18,6 +15,7 @@ import com.system.moneybank.service.smsService.SmsService;
 import com.system.moneybank.utils.AccountUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -28,6 +26,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Year;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -98,7 +98,7 @@ public class OfficerServiceImpl implements OfficerService{
         boolean accountExists = userService.existsByAccountNumber(request.getAccountNumber());
         if (!accountExists) return Response.builder().code(ACCOUNT_NOT_FOUND_CODE).message(ACCOUNT_NOT_FOUND_MESSAGE).build();
         if (isInValidAmount(request)) return Response.builder().code(ACCOUNT_CREDIT_DECLINED_CODE).message(ACCOUNT_CREDIT_DECLINED_MESSAGE).build();
-        Customer creditedUser = creditUser(request);
+        Customer creditedUser = creditCustomer(request);
         Officer officer = officerRepo.findById(request.getOfficerId()).orElseThrow(() -> new OfficerNotFoundException("Officer not found"));
         BankingHallTransaction bankingHallTransaction = createTransaction(request, creditedUser, CREDIT, SUCCESS, officer);
         transactionService.saveTransaction(bankingHallTransaction);
@@ -129,7 +129,7 @@ public class OfficerServiceImpl implements OfficerService{
         BigDecimal amountInUserAccount = user.getAccountBalance();
         if (isInValidAmount(request)) return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
         if (request.getAmount().compareTo(amountInUserAccount) > 0) return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
-        Customer debitedUser = debitUser(request);
+        Customer debitedUser = debitCustomer(request);
         Officer officer = officerRepo.findById(request.getOfficerId()).orElseThrow(() -> new OfficerNotFoundException("Officer not found"));
         BankingHallTransaction bankingHallTransaction = createTransaction(request, debitedUser, DEBIT, SUCCESS, officer);
         transactionService.saveTransaction(bankingHallTransaction);
@@ -191,15 +191,33 @@ public class OfficerServiceImpl implements OfficerService{
         }
     }
 
+    @Override
+    public CreateCardResponse createCard(RequestForCard request) {
+        Customer customer = userService.findByAccountNumber(request.getAccountNumber());
+        Officer officer = officerRepo.findById(request.getOfficerId())
+                .orElseThrow(() -> new OfficerNotFoundException("OFFICER NOT FOUND"));
+        if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
+        Card card = Card.builder()
+                .cardType(request.getCardType())
+                .cardName(customer.getFirstName() + " " + customer.getLastName() + " " + customer.getLastName())
+                .cardNumber(AccountUtils.generateCardNumber())
+                .customer(customer)
+                .expiryMonth(LocalDate.now().format(DateTimeFormatter.ofPattern("MM")))
+                .expiryYear(String.valueOf(Year.now().plusYears(5).getValue() % 100))
+                .issuingOfficerId(officer.getId())
+                .cv2(hashDetails(AccountUtils.generateCv2()))
+                .build();
+    }
 
-    private Customer creditUser(CreditDebitRequest request) {
+
+    private Customer creditCustomer(CreditDebitRequest request) {
         Customer userToBeCredited = userService.findByAccountNumber(request.getAccountNumber());
         if (userToBeCredited.getAccountStatus().equals(RESTRICTED)) throw new RestrictedAccountException("THIS ACCOUNT WAS RESTRICTED");
         BigDecimal userToBeCreditedBalance = userToBeCredited.getAccountBalance();
         userToBeCredited.setAccountBalance(userToBeCreditedBalance.add(request.getAmount()));
         return userService.save(userToBeCredited);
     }
-    private Customer debitUser(CreditDebitRequest request){
+    private Customer debitCustomer(CreditDebitRequest request){
         Customer userToBeDebited = userService.findByAccountNumber(request.getAccountNumber());
         if (userToBeDebited.getAccountStatus().equals(RESTRICTED))
             throw new RestrictedAccountException("THIS ACCOUNT WAS RESTRICTED");
@@ -261,5 +279,12 @@ public class OfficerServiceImpl implements OfficerService{
     private boolean officerExists(String userName) {
         Optional<Officer> officer = officerRepo.findByUserName(userName);
         return officer.isPresent();
+    }
+
+    private String hashDetails(String detail){
+        return BCrypt.hashpw(detail, BCrypt.gensalt());
+    }
+    private boolean confirmPassword(String candidate, String detail){
+        return BCrypt.checkpw(candidate, detail);
     }
 }

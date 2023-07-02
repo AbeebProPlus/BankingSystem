@@ -69,4 +69,6 @@ public class Customer {
 
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
     private List<Transaction> transactionList = new ArrayList<>();
+    @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
+    private List<Card> cards = new ArrayList<>();
 }

@@ -1,8 +1,11 @@
 package com.system.moneybank.utils;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 import java.time.Year;
 
 public class AccountUtils {
+    private static final String issuerIdentifier = "5045";
     public static final String ACCOUNT_EXISTS_CODE = "001";
     public static final String ACCOUNT_EXISTS_MESSAGE = "Sorry, this user already has an account created";
 
@@ -45,5 +48,21 @@ public class AccountUtils {
         String year = String.valueOf(Year.now());
         return year + randomNum;
     }
+
+    public static String generateCardNumber() {
+        int min = 100_000_000;
+        int max = 999_999_999;
+        int randomNumber = (int) Math.floor(Math.random() * (max - min + 1) + min);
+        String randomNum = String.valueOf(randomNumber);
+        String year = String.valueOf(Year.now().getValue());
+        return issuerIdentifier + year + randomNum.substring(0, 3) + "0" + randomNum.substring(3);
+    }
+    public static String generateCv2() {
+        int min = 100;
+        int max = 999;
+        int randomNumber = (int) Math.floor(Math.random() * (max - min + 1) + min);
+        return String.valueOf(randomNumber);
+    }
+
 
 }
