@@ -29,11 +29,7 @@ public class Customer {
     @NotBlank(message = "Last name is required")
     private String lastName;
 
-    private String password;
-
     private String middleName;
-
-    private String role;
 
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format: Valid format: xyz@gmail.com")

@@ -28,6 +28,8 @@ public class Card {
     private CardType cardType;
     @NotBlank(message = "Give card a cv2")
     private String cv2;
+    @NotBlank(message = "Give card a pin")
+    private String defaultPin;
     @NotBlank(message = "Provide issuer name")
     private String issuingOfficerId;
     private String accountNumber;
