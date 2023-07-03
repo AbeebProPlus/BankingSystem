@@ -30,6 +30,9 @@ public class Card {
     private String cv2;
     @NotBlank(message = "Provide issuer name")
     private String issuingOfficerId;
+    private String accountNumber;
     @ManyToOne
     private Customer customer;
+    @Enumerated(EnumType.STRING)
+    private CardStatus status;
 }

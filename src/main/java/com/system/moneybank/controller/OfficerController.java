@@ -84,5 +84,15 @@ public class OfficerController {
     public ResponseEntity<?> activateBankAccount(@RequestBody ActivateAccount request){
         return new ResponseEntity<>(officerService.activateBankAccount(request), HttpStatus.OK);
     }
+    @PostMapping("card_creation")
+    @PreAuthorize("hasAuthority('OFFICER')")
+    public ResponseEntity<?> createCard(@RequestBody RequestForCard request){
+        return new ResponseEntity<>(officerService.createCard(request), HttpStatus.OK);
+    }
 
+    @PostMapping("card_deactivation")
+    @PreAuthorize("hasAuthority('OFFICER')")
+    public ResponseEntity<?> deactivateCard(@RequestBody DeactivateCard request){
+        return new ResponseEntity<>(officerService.deActivateCard(request), HttpStatus.OK);
+    }
 }

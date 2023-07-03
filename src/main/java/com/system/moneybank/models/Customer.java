@@ -29,7 +29,6 @@ public class Customer {
     @NotBlank(message = "Last name is required")
     private String lastName;
 
-    @NotBlank(message = "Password is required")
     private String password;
 
     private String middleName;

@@ -38,7 +38,15 @@ public class AccountUtils {
     public static final String TRANSACTION_NOT_FOUND_CODE = "011";
     public static final String TRANSACTION_NOT_FOUND_MESSAGE = "Transaction not found or didn't occur";
     public static final String INVALID_DESTINATION_MESSAGE = "Destination account does not exist";
+    public static final String CARD_CREATION_CODE = "012";
+    public static final String CARD_CREATION_MESSAGE = "Card created successfully";
+    public static final String CARD_CREATION_FAILURE = "013";
+    public static final String CARD_CREATION_FAILED_MESSAGE = "Card creation failed";
+    public static final String CARD_DEACTIVATION_SUCCESSFUL = "014";
+    public static final String CARD_DEACTIVATION_SUCCESS_MESSAGE = "Card deactivated successfully";
 
+    public static final String CARD_DEACTIVATION_FAILED = "015";
+    public static final String CARD_DEACTIVATION_FAILED_MESSAGE = "Card deactivation failed";
 
     public static String generateAccountNumber(){
         int min = 100000;
@@ -63,6 +71,5 @@ public class AccountUtils {
         int randomNumber = (int) Math.floor(Math.random() * (max - min + 1) + min);
         return String.valueOf(randomNumber);
     }
-
 
 }

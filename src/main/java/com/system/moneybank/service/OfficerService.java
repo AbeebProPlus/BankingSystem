@@ -17,5 +17,6 @@ public interface OfficerService {
     List<BankingHallTransaction> viewAllBankingHallTransactions();
     RestrictAccountResponse restrictBankAccount(RestrictAccountRequest request);
     RestrictAccountResponse activateBankAccount(ActivateAccount request);
-    CreateCardResponse createCard(RequestForCard request);
+    CardResponse createCard(RequestForCard request);
+    CardResponse deActivateCard(DeactivateCard request);
 }

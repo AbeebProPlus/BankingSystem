@@ -33,6 +33,7 @@ import java.util.Optional;
 
 import static com.system.moneybank.models.AccountStatus.ACTIVE;
 import static com.system.moneybank.models.AccountStatus.RESTRICTED;
+import static com.system.moneybank.models.CardType.DEBIT_CARD;
 import static com.system.moneybank.models.TransactionStatus.SUCCESS;
 import static com.system.moneybank.models.TransactionType.CREDIT;
 import static com.system.moneybank.models.TransactionType.DEBIT;
@@ -51,7 +52,7 @@ public class OfficerServiceImpl implements OfficerService{
     private final JwtService jwtService;
     private final OfficerRepo officerRepo;
     private final SmsService smsService;
-
+    private final CardService cardService;
     @Override
     public AuthResponse authenticateAndGetToken(AuthRequest authRequest) {
         try {
@@ -192,21 +193,46 @@ public class OfficerServiceImpl implements OfficerService{
     }
 
     @Override
-    public CreateCardResponse createCard(RequestForCard request) {
-        Customer customer = userService.findByAccountNumber(request.getAccountNumber());
-        Officer officer = officerRepo.findById(request.getOfficerId())
-                .orElseThrow(() -> new OfficerNotFoundException("OFFICER NOT FOUND"));
-        if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
-        Card card = Card.builder()
-                .cardType(request.getCardType())
-                .cardName(customer.getFirstName() + " " + customer.getLastName() + " " + customer.getLastName())
-                .cardNumber(AccountUtils.generateCardNumber())
-                .customer(customer)
-                .expiryMonth(LocalDate.now().format(DateTimeFormatter.ofPattern("MM")))
-                .expiryYear(String.valueOf(Year.now().plusYears(5).getValue() % 100))
-                .issuingOfficerId(officer.getId())
-                .cv2(hashDetails(AccountUtils.generateCv2()))
-                .build();
+    public CardResponse createCard(RequestForCard request) {
+        try {
+            Customer customer = userService.findByAccountNumber(request.getAccountNumber());
+            if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
+            Officer officer = officerRepo.findById(request.getOfficerId())
+                    .orElseThrow(() -> new OfficerNotFoundException("OFFICER NOT FOUND"));
+            Card foundCard = cardService.findCardByAccountNumber(request.getAccountNumber());
+            if (foundCard == null){
+                Card newCard = buildCard(request, customer, officer);
+                cardService.saveCard(newCard);
+            }else if (foundCard.getStatus() != CardStatus.DEACTIVATED || foundCard.getStatus() != CardStatus.EXPIRED) {
+                throw new RuntimeException("THIS ACCOUNT HAS AN ACTIVE CARD");
+            }
+            return CardResponse.builder().code(CARD_CREATION_CODE).message(CARD_CREATION_MESSAGE).build();
+        }catch (Exception ex){
+            return CardResponse.builder().code(CARD_CREATION_FAILURE).message(ex.getMessage()).build();
+        }
+    }
+
+    private Card buildCard(RequestForCard request, Customer customer, Officer officer) {
+        return Card.builder().cardNumber(AccountUtils.generateCardNumber()).customer(customer)
+                .cardType(DEBIT_CARD).cardName(customer.getFirstName() + " " + customer.getLastName() + " " + customer.getLastName())
+                .expiryMonth(LocalDate.now().format(DateTimeFormatter.ofPattern("MM"))).expiryYear(String.valueOf(Year.now().plusYears(5).getValue() % 100))
+                .issuingOfficerId(officer.getId()).cv2(AccountUtils.generateCv2()).status(CardStatus.ACTIVATED)
+                .accountNumber(customer.getAccountNumber()).build();
+    }
+
+    @Override
+    public CardResponse deActivateCard(DeactivateCard request) {
+        try {
+            Customer customer = userService.findByAccountNumber(request.getAccountNumber());
+            if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
+            Card card = cardService.findCardByNumber(request.getCardNumber());
+            if (card == null) throw new RuntimeException("Card doesn't exists");
+            card.setStatus(CardStatus.DEACTIVATED);
+            cardService.saveCard(card);
+            return CardResponse.builder().code(CARD_DEACTIVATION_SUCCESSFUL).message(CARD_DEACTIVATION_SUCCESS_MESSAGE).build();
+        }catch (Exception ex){
+            return CardResponse.builder().code(CARD_DEACTIVATION_FAILED).message(ex.getMessage()).build();
+        }
     }
 
 

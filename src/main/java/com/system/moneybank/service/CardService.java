@@ -4,4 +4,6 @@ import com.system.moneybank.models.Card;
 
 public interface CardService {
     void saveCard(Card card);
+    Card findCardByNumber(String cardNumber);
+    Card findCardByAccountNumber(String accountNumber);
 }
