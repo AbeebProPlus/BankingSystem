@@ -10,8 +10,8 @@ import org.springframework.stereotype.Service;
 public class CardServiceImpl implements CardService{
     private final CardRepo cardRepo;
     @Override
-    public void saveCard(Card card) {
-        cardRepo.save(card);
+    public Card saveCard(Card card) {
+        return cardRepo.save(card);
     }
 
     @Override
@@ -22,5 +22,10 @@ public class CardServiceImpl implements CardService{
     @Override
     public Card findCardByAccountNumber(String accountNumber) {
         return cardRepo.findByAccountNumber(accountNumber);
+    }
+
+    @Override
+    public Card findCardByCustomerId(Long id) {
+        return cardRepo.findByCustomerId(id);
     }
 }

@@ -1,6 +1,6 @@
 package com.system.moneybank.dtos.response;
 
-import com.system.moneybank.models.Card;
+import com.system.moneybank.models.Customer;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +10,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class CardResponse {
+public class CreateAccountResponse {
     private String code;
     private String message;
+    private Customer customer;
 }

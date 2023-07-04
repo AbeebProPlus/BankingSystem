@@ -29,12 +29,11 @@ public class Card {
     @NotBlank(message = "Give card a cv2")
     private String cv2;
     @NotBlank(message = "Give card a pin")
-    private String defaultPin;
+    private String pin;
     @NotBlank(message = "Provide issuer name")
     private String issuingOfficerId;
     private String accountNumber;
-    @ManyToOne
-    private Customer customer;
+    private Long customerId;
     @Enumerated(EnumType.STRING)
     private CardStatus status;
 }

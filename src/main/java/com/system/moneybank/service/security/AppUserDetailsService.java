@@ -1,6 +1,5 @@
 package com.system.moneybank.service.security;
 
-import com.system.moneybank.config.CustomerDetails;
 import com.system.moneybank.config.OfficerDetails;
 import com.system.moneybank.models.Customer;
 import com.system.moneybank.models.Officer;
@@ -18,20 +17,12 @@ import java.util.Optional;
 public class AppUserDetailsService implements UserDetailsService {
     @Autowired
     private OfficerRepo officerRepo;
-    @Autowired
-    private CustomerRepo customerRepo;
+
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         Optional<Officer> officer = officerRepo.findByUserName(username);
-        Optional<Customer> customer = customerRepo.findByEmail(username);
-        if (customer.isPresent()) {
-            if (customer.get().getRole().equals("CUSTOMER")) {
-                return new CustomerDetails(customer.get());
-            }
-        } else if (officer.isPresent()) {
-            if (officer.get().getRole().equals("OFFICER")) {
+        if (officer.get().getRole().equals("OFFICER")) {
                 return new OfficerDetails(officer.get());
             }
-        }
         throw new UsernameNotFoundException("User not found");
     }
 }

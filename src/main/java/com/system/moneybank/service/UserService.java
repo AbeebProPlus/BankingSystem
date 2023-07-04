@@ -9,9 +9,6 @@ import com.system.moneybank.models.Transaction;
 import java.util.List;
 
 public interface UserService {
-    Response checkAccountBalance(EnquiryRequest enquiryRequest);
-    Response transfer(TransferRequest request);
-    TransactionHistoryResponse getAllTransactionsDoneByCustomer(TransactionHistoryRequest request);
     boolean existsByAccountNumber(String accountNumber);
     boolean existsByEmail(String email);
     Customer findByAccountNumber(String accountNumber);

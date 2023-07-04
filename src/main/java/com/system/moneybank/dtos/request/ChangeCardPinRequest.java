@@ -9,11 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class RegisterForInternetBanking {
+public class ChangeCardPinRequest {
     private String accountNumber;
     private String cardNumber;
-    private String cardPin;
-    private String preferredTransactionPin;
-    private String userName;
-    private String password;
+    private String oldPin;
+    private String newPin;
 }

@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @NoArgsConstructor
-public class InternetBankingCustomers {
+public class InternetBankingCustomer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,4 +24,6 @@ public class InternetBankingCustomers {
     private String password;
     @NotBlank(message = "Transaction pin cannot be empty")
     private String transactionPin;
+    @Enumerated(EnumType.STRING)
+    private Role role;
 }

@@ -22,24 +22,28 @@ import org.springframework.web.bind.annotation.*;
 public class OfficerController {
     private final OfficerService officerService;
 
-
+    @Operation(
+            summary = "Authenticates a bank officer",
+            description = "Given the required details, a jwt token is generated"
+    )
     @PostMapping("login")
     public ResponseEntity<?> authenticateAndGetToken(@RequestBody AuthRequest request) {
         return new ResponseEntity<>(officerService.authenticateAndGetToken(request), HttpStatus.OK);
     }
     @Operation(
-            summary = "creates a new user account",
-            description = "creates a new user, store user in the database and gives an Id to the user"
+            summary = "creates a new customer account",
+            description = "creates a new customer, store customer in the database and gives an Id to the user"
     )
-    @ApiResponse(
-            responseCode = "201",
-            description = "CREATED"
-    )
+
     @PostMapping("new_account")
     @PreAuthorize("hasAuthority('OFFICER')")
     public ResponseEntity<?> createAccount(@Valid @RequestBody CreateAccountRequest request){
         return new ResponseEntity<>(officerService.createBankAccount(request), HttpStatus.OK);
     }
+    @Operation(
+            summary = "Checks account balance for a customer",
+            description = "Given that a customer requires for it and provides acc number, it fetches account balance from the database"
+    )
 
     @GetMapping("account_balance")
     @PreAuthorize("hasAuthority('OFFICER')")
@@ -47,6 +51,10 @@ public class OfficerController {
         return new ResponseEntity<>(officerService.checkAccountBalance(request), HttpStatus.OK);
     }
 
+    @Operation(
+    summary = "Gets the account name for a customer account",
+    description = "Given that a customer requires for it and provides acc number, it fetches customer name from the database"
+            )
     @GetMapping("account_name")
 
     @PreAuthorize("hasAuthority('OFFICER')")
@@ -74,12 +82,12 @@ public class OfficerController {
     public ResponseEntity<?> viewAllBankingHallTransactions(){
         return new ResponseEntity<>(officerService.viewAllBankingHallTransactions(), HttpStatus.OK);
     }
-    @PostMapping("restriction")
+    @PostMapping("account_restriction")
     @PreAuthorize("hasAuthority('OFFICER')")
     public ResponseEntity<?> restrictBankAccount(@RequestBody RestrictAccountRequest request){
         return new ResponseEntity<>(officerService.restrictBankAccount(request), HttpStatus.OK);
     }
-    @PostMapping("activation")
+    @PostMapping("account_reactivation")
     @PreAuthorize("hasAuthority('OFFICER')")
     public ResponseEntity<?> activateBankAccount(@RequestBody ActivateAccount request){
         return new ResponseEntity<>(officerService.activateBankAccount(request), HttpStatus.OK);

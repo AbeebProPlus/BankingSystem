@@ -106,8 +106,8 @@ public class OfficerServiceImpl implements OfficerService{
         String message = "\nDear " + creditedUser.getFirstName() + "\nA credit transaction occurred on your account " +
                 "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + creditedUser.getAccountBalance() +
                 "\nFrom: " + request.getDepositorName() + "\nDate: " + LocalDate.now() + "\nTime: " + LocalTime.now();
-        Sms sms = Sms.builder().to(creditedUser.getPhoneNumber()).message(message).build();
-        smsService.sendSms(sms);
+//        Sms sms = Sms.builder().to(creditedUser.getPhoneNumber()).message(message).build();
+//        smsService.sendSms(sms);
         EmailDetails details = mailMessage(creditedUser, "Credit transaction notification", creditedUser.getEmail(), message);
         emailSenderService.sendMail(details);
         return transactionResponse(creditedUser, ACCOUNT_CREDITED_CODE, ACCOUNT_CREDITED_MESSAGE);
@@ -197,12 +197,13 @@ public class OfficerServiceImpl implements OfficerService{
         try {
             Customer customer = userService.findByAccountNumber(request.getAccountNumber());
             if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
+            if (customer.getAccountBalance().compareTo(new BigDecimal("1000")) < 0)
+                throw new CustomerNotFound("Insufficient funds");
             Officer officer = officerRepo.findById(request.getOfficerId())
                     .orElseThrow(() -> new OfficerNotFoundException("OFFICER NOT FOUND"));
             Card foundCard = cardService.findCardByAccountNumber(request.getAccountNumber());
             if (foundCard == null){
-                Card newCard = buildCard(request, customer, officer);
-                cardService.saveCard(newCard);
+                processCard(request, customer, officer);
             }else if (foundCard.getStatus() != CardStatus.DEACTIVATED || foundCard.getStatus() != CardStatus.EXPIRED) {
                 throw new RuntimeException("THIS ACCOUNT HAS AN ACTIVE CARD");
             }
@@ -212,12 +213,23 @@ public class OfficerServiceImpl implements OfficerService{
         }
     }
 
+    private void processCard(RequestForCard request, Customer customer, Officer officer) {
+        Card newCard = buildCard(request, customer, officer);
+        Card savedCard = cardService.saveCard(newCard);
+        BigDecimal amount = customer.getAccountBalance().subtract(new BigDecimal("1000"));
+        customer.setAccountBalance(amount);
+        userService.save(customer);
+        String message = "\nDear " + customer.getFirstName() + " \nA debit transaction occurred on your account.\nPurpose: Card issuance fee\n" +
+                "\nAmount: " + 1000 + "\nCurrent balance: "  + customer.getAccountBalance() + "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
+        EmailDetails details = mailMessage(customer, "Debit transaction notification", customer.getEmail(), message);
+    }
+
     private Card buildCard(RequestForCard request, Customer customer, Officer officer) {
-        return Card.builder().cardNumber(AccountUtils.generateCardNumber()).customer(customer)
+        return Card.builder().cardNumber(AccountUtils.generateCardNumber()).customerId(customer.getId())
                 .cardType(DEBIT_CARD).cardName(customer.getFirstName() + " " + customer.getLastName() + " " + customer.getLastName())
-                .expiryMonth(LocalDate.now().format(DateTimeFormatter.ofPattern("MM"))).expiryYear(String.valueOf(Year.now().plusYears(5).getValue() % 100))
+                .expiryMonth(LocalDate.now().format(DateTimeFormatter.ofPattern("MM"))).expiryYear(String.valueOf(Year.now().plusYears(5).getValue()))
                 .issuingOfficerId(officer.getId()).cv2(AccountUtils.generateCv2()).status(CardStatus.ACTIVATED)
-                .accountNumber(customer.getAccountNumber()).build();
+                .accountNumber(customer.getAccountNumber()).pin(AccountUtils.generateDefaultCardPin()).build();
     }
 
     @Override
@@ -265,7 +277,6 @@ public class OfficerServiceImpl implements OfficerService{
         return Customer.builder().firstName(request.getFirstName()).lastName(request.getLastName()).middleName(request.getMiddleName())
                 .email(request.getEmail()).phoneNumber(request.getPhoneNumber()).secondPhoneNumber(request.getSecondPhoneNumber())
                 .address(request.getAddress()).gender(request.getGender())
-                .role(String.valueOf(Role.CUSTOMER))
                 .accountNumber(AccountUtils.generateAccountNumber()).accountBalance(ZERO).accountStatus(ACTIVE)
                 .build();
     }

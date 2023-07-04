@@ -47,7 +47,8 @@ public class AccountUtils {
 
     public static final String CARD_DEACTIVATION_FAILED = "015";
     public static final String CARD_DEACTIVATION_FAILED_MESSAGE = "Card deactivation failed";
-
+    public static final String CARD_PIN_CHANGED_CODE = "016";
+    public static final String CARD_PIN_CHANGED_FAILURE = "017";
     public static String generateAccountNumber(){
         int min = 100000;
         int max = 999999;
@@ -62,12 +63,19 @@ public class AccountUtils {
         int max = 999_999_999;
         int randomNumber = (int) Math.floor(Math.random() * (max - min + 1) + min);
         String randomNum = String.valueOf(randomNumber);
-        String year = String.valueOf(Year.now().getValue());
+        String year = String.valueOf(Year.now().getValue() % 100);
         return issuerIdentifier + year + randomNum.substring(0, 3) + "0" + randomNum.substring(3);
     }
     public static String generateCv2() {
         int min = 100;
         int max = 999;
+        int randomNumber = (int) Math.floor(Math.random() * (max - min + 1) + min);
+        return String.valueOf(randomNumber);
+    }
+
+    public static String generateDefaultCardPin() {
+        int min = 1000;
+        int max = 9999;
         int randomNumber = (int) Math.floor(Math.random() * (max - min + 1) + min);
         return String.valueOf(randomNumber);
     }
