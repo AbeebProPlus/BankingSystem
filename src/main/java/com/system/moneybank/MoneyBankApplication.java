@@ -12,12 +12,21 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @OpenAPIDefinition(
         info = @Info(
             title = "Money Bank: A Banking Management System",
-            description = "Backend REST APIS for a banking mangement system",
+            description = """
+                     Backend REST APIS for a banking management system. 
+                     This system has been secured using jwt security. 
+                     Apart from the sign-up and login endpoints, every endpoint was secured.
+                     This system was designed to mimic a typical banking system.
+                     All endpoints with the pattern /api/v1/officer/** will need to use a jwt token generated from calling the **/officer/login endpoint\s
+                     Likewise all endpoints with the pattern /api/v1/iCustomer/** will also need a jwt token generated from calling the **/iCustomer/login endpoint\s
+                     You can use the character '1' as id for officer for endpoints that require officerId because an officer of id '1'is automatically generated
+                     I implore you to use an actual email when interacting with these endpoints because they've been programmed to send emails to the email you'll be using 
+                     """
+                ,
             version = "v1.0",
             contact = @Contact(
                     name = "Abeeb Ahmad",
-                    email = "abeebahmad24@gmail.com",
-                    url = "pending"
+                    email = "abeebahmad24@gmail.com"
             ),
                 license = @License(
                         name = "My property"

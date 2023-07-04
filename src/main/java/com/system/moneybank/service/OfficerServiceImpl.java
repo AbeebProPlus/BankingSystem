@@ -62,7 +62,9 @@ public class OfficerServiceImpl implements OfficerService{
                             authRequest.getPassword()));
             if (authentication.isAuthenticated()) token = jwtService.generateToken(authRequest.getUserName());
             else throw new IllegalArgumentException("User not found");
+            Officer officer = officerRepo.findByUserName(authRequest.getUserName()).get();
             return AuthResponse.builder()
+                    .userId(officer.getId())
                     .message("Authentication successful")
                     .token(token)
                     .build();
@@ -173,6 +175,12 @@ public class OfficerServiceImpl implements OfficerService{
             if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
             customer.setAccountStatus(RESTRICTED);
             userService.save(customer);
+            String message = "\nDear " + customer.getFirstName() + " \nYour account has been restricted." +
+                    "\n Debit and credit transactions are currently put on hold" +
+                    "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
+            EmailDetails details = mailMessage(customer, "Account restriction",
+                    customer.getEmail(), message);
+            emailSenderService.sendMail(details);
             return RestrictAccountResponse.builder().message("ACCOUNT IS NOW RESTRICTED").build();
         }catch (Exception ex){
             return RestrictAccountResponse.builder().message(ex.getMessage()).build();
@@ -186,6 +194,12 @@ public class OfficerServiceImpl implements OfficerService{
             if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
             customer.setAccountStatus(ACTIVE);
             userService.save(customer);
+            String message = "\nDear " + customer.getFirstName() + " \nYour account has been re-activated." +
+                    "\n Debit and credit transactions are now permitted on your account" +
+                    "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
+            EmailDetails details = mailMessage(customer, "Account re-activation",
+                    customer.getEmail(), message);
+            emailSenderService.sendMail(details);
             return RestrictAccountResponse.builder().message("ACCOUNT IS NOW ACTIVE").build();
         }catch (Exception ex){
             return RestrictAccountResponse.builder().message(ex.getMessage()).build();
@@ -215,13 +229,14 @@ public class OfficerServiceImpl implements OfficerService{
 
     private void processCard(RequestForCard request, Customer customer, Officer officer) {
         Card newCard = buildCard(request, customer, officer);
-        Card savedCard = cardService.saveCard(newCard);
+        cardService.saveCard(newCard);
         BigDecimal amount = customer.getAccountBalance().subtract(new BigDecimal("1000"));
         customer.setAccountBalance(amount);
         userService.save(customer);
         String message = "\nDear " + customer.getFirstName() + " \nA debit transaction occurred on your account.\nPurpose: Card issuance fee\n" +
                 "\nAmount: " + 1000 + "\nCurrent balance: "  + customer.getAccountBalance() + "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
         EmailDetails details = mailMessage(customer, "Debit transaction notification", customer.getEmail(), message);
+        emailSenderService.sendMail(details);
     }
 
     private Card buildCard(RequestForCard request, Customer customer, Officer officer) {
@@ -235,15 +250,46 @@ public class OfficerServiceImpl implements OfficerService{
     @Override
     public CardResponse deActivateCard(DeactivateCard request) {
         try {
-            Customer customer = userService.findByAccountNumber(request.getAccountNumber());
+            Customer customer = getByAccountNumber(request);
             if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
             Card card = cardService.findCardByNumber(request.getCardNumber());
             if (card == null) throw new RuntimeException("Card doesn't exists");
             card.setStatus(CardStatus.DEACTIVATED);
             cardService.saveCard(card);
+            String message = "\nDear " + customer.getFirstName() + " \nYour debit card has been restricted." +
+                    "\n Please visit any of our branches to rectify this issue" +
+                    "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
+            EmailDetails details = mailMessage(customer, "Debit card restricted",
+                    customer.getEmail(), message);
+            emailSenderService.sendMail(details);
             return CardResponse.builder().code(CARD_DEACTIVATION_SUCCESSFUL).message(CARD_DEACTIVATION_SUCCESS_MESSAGE).build();
         }catch (Exception ex){
             return CardResponse.builder().code(CARD_DEACTIVATION_FAILED).message(ex.getMessage()).build();
+        }
+    }
+
+    private Customer getByAccountNumber(DeactivateCard request) {
+        return userService.findByAccountNumber(request.getAccountNumber());
+    }
+
+    @Override
+    public CardResponse activateCard(DeactivateCard request) {
+        try {
+            Customer customer = getByAccountNumber(request);
+            if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
+            Card card = cardService.findCardByNumber(request.getCardNumber());
+            if (card == null) throw new RuntimeException("Card doesn't exists");
+            card.setStatus(CardStatus.ACTIVATED);
+            cardService.saveCard(card);
+            String message = "\nDear " + customer.getFirstName() + " \nYour debit card has been re-activated." +
+                    "\n Transactions are now permitted with your card" +
+                    "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
+            EmailDetails details = mailMessage(customer, "Debit card re-activated",
+                    customer.getEmail(), message);
+            emailSenderService.sendMail(details);
+            return CardResponse.builder().code(CARD_REACTIVATION_SUCCESSFUL).message(CARD_REACTIVATION_SUCCESS_MESSAGE).build();
+        }catch (Exception ex){
+            return CardResponse.builder().code(CARD_REACTIVATION_FAILED).message(ex.getMessage()).build();
         }
     }
 

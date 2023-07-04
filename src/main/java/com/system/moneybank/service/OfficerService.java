@@ -19,4 +19,5 @@ public interface OfficerService {
     RestrictAccountResponse activateBankAccount(ActivateAccount request);
     CardResponse createCard(RequestForCard request);
     CardResponse deActivateCard(DeactivateCard request);
+    CardResponse activateCard(DeactivateCard request);
 }

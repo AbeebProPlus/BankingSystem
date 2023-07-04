@@ -1,10 +1,7 @@
 package com.system.moneybank.service;
 
 import com.system.moneybank.dtos.request.*;
-import com.system.moneybank.dtos.response.CardResponse;
-import com.system.moneybank.dtos.response.InternetBankingRegistrationResponse;
-import com.system.moneybank.dtos.response.Response;
-import com.system.moneybank.dtos.response.TransactionHistoryResponse;
+import com.system.moneybank.dtos.response.*;
 import com.system.moneybank.exceptions.CardException;
 import com.system.moneybank.exceptions.CustomerNotFound;
 import com.system.moneybank.exceptions.RestrictedAccountException;
@@ -12,14 +9,20 @@ import com.system.moneybank.models.*;
 import com.system.moneybank.repository.InternetBankingCustomersRepo;
 import com.system.moneybank.service.emailService.EmailDetails;
 import com.system.moneybank.service.emailService.EmailSenderService;
+import com.system.moneybank.service.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.mindrot.jbcrypt.BCrypt;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.system.moneybank.models.AccountStatus.RESTRICTED;
 import static com.system.moneybank.models.CardStatus.DEACTIVATED;
@@ -40,9 +43,36 @@ public class InternetBankingServiceImpl implements InternetBankingService{
     private final EmailSenderService emailSenderService;
     private final CardService cardService;
     private final UserService userService;
+    private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+
+    @Override
+    public AuthResponse authenticateAndGetToken(AuthRequest authRequest) {
+        try {
+            String token;
+            Authentication authentication =
+                    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequest.getUserName(),
+                            authRequest.getPassword()));
+            if (authentication.isAuthenticated()) token = jwtService.generateToken(authRequest.getUserName());
+            else throw new IllegalArgumentException("User not found");
+            InternetBankingCustomer customer = internetBankingCustomersRepo.findByUserName(authRequest.getUserName()).get();
+            return AuthResponse.builder()
+                    .userId(customer.getId())
+                    .message("Authentication successful")
+                    .token(token)
+                    .build();
+        }catch (Exception ex){
+            return AuthResponse.builder()
+                    .message(ex.getMessage())
+                    .build();
+        }
+    }
     @Override
     public InternetBankingRegistrationResponse signUp(RegisterForInternetBanking request) {
         try {
+            Optional<InternetBankingCustomer> customer1 = internetBankingCustomersRepo.findByUserName(request.getUserName());
+            if (customer1.isPresent()) throw new RuntimeException("User name is taken. User another one");
             InternetBankingCustomer internetBankingCustomer = internetBankingCustomersRepo.findByAccountNumber(request.getAccountNumber());
             if (internetBankingCustomer != null) throw new RuntimeException("Have you signed up recently?");
             Customer customer = userService.findByAccountNumber(request.getAccountNumber());
@@ -59,12 +89,13 @@ public class InternetBankingServiceImpl implements InternetBankingService{
         }
     }
     @Override
-    public CardResponse deActivateCard(DeactivateCard request) {
+    public CardResponse deActivateCard(CardDeactivationRequest request) {
         try {
             Customer customer = userService.findByAccountNumber(request.getAccountNumber());
             if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
             Card card = cardService.findCardByNumber(request.getCardNumber());
             if (card == null) throw new RuntimeException("Card doesn't exists");
+            if (!Objects.equals(card.getPin(), request.getCardPin())) throw new CardException("Invalid card details");
             card.setStatus(CardStatus.DEACTIVATED);
             cardService.saveCard(card);
             return CardResponse.builder().code(CARD_DEACTIVATION_SUCCESSFUL).message(CARD_DEACTIVATION_SUCCESS_MESSAGE).build();
@@ -77,15 +108,15 @@ public class InternetBankingServiceImpl implements InternetBankingService{
     public Response transfer(TransferRequest request) {
         boolean isValidDestination = userService.existsByAccountNumber(request.getDestinationAccountNumber());
         if (!isValidDestination) return Response.builder().code(ACCOUNT_NOT_FOUND_CODE).message(INVALID_DESTINATION_MESSAGE).build();
+        InternetBankingCustomer internetBankingCustomer = internetBankingCustomersRepo.findByAccountNumber(request.getDestinationAccountNumber());
         Customer sourceAccount = userService.findByAccountNumber(request.getSourceAccountNumber());
-        if (sourceAccount.getAccountStatus().equals(RESTRICTED))
-            throw new RestrictedAccountException("SOURCE ACCOUNT WAS RESTRICTED");
+        checkIfSourceAccountIsSignedUpForInternetBanking(internetBankingCustomer, sourceAccount);
+        checkAccountStatus(sourceAccount, "PERMISSION DENIED. SOURCE ACCOUNT WAS RESTRICTED");
         if (request.getAmount().compareTo(sourceAccount.getAccountBalance()) > 0)return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
         BigDecimal debitedAmount = request.getAmount();
         sourceAccount.setAccountBalance(sourceAccount.getAccountBalance().subtract(debitedAmount));
         Customer destinationAccount = userService.findByAccountNumber(request.getDestinationAccountNumber());
-        if (destinationAccount.getAccountStatus().equals(RESTRICTED))
-            throw new RestrictedAccountException("DESTINATION ACCOUNT WAS RESTRICTED");
+        checkAccountStatus(destinationAccount, "PERMISSION DENIED. DESTINATION ACCOUNT WAS RESTRICTED");
         BigDecimal updatedDestinationBalance = destinationAccount.getAccountBalance().add(debitedAmount);
         destinationAccount.setAccountBalance(updatedDestinationBalance);
 
@@ -113,6 +144,16 @@ public class InternetBankingServiceImpl implements InternetBankingService{
         EmailDetails creditDetails = mailMessage(sourceAccount, "Credit transaction notification", destinationAccount.getEmail(), creditMessage);
         emailSenderService.sendMail(creditDetails);
         return Response.builder().code(TRANSFER_SUCCESS_CODE).message(TRANSFER_SUCCESS_MESSAGE).build();
+    }
+
+    private void checkAccountStatus(Customer account, String message) {
+        if (account.getAccountStatus().equals(RESTRICTED))
+            throw new RestrictedAccountException(message);
+    }
+
+    private void checkIfSourceAccountIsSignedUpForInternetBanking(InternetBankingCustomer internetBankingCustomer, Customer sourceAccount) {
+        if (!Objects.equals(internetBankingCustomer.getAccountNumber(), sourceAccount.getAccountNumber()))
+            throw new CustomerNotFound("PERMISSION DENIED. THIS ACCOUNT IS NOT SIGNED UP FOR INTERNET BANKING");
     }
 
     @Override
@@ -180,9 +221,9 @@ public class InternetBankingServiceImpl implements InternetBankingService{
 
     private InternetBankingCustomer getiCustomer(RegisterForInternetBanking request, Customer customer) {
         return InternetBankingCustomer.builder()
-                .accountNumber(customer.getAccountNumber()).password(request.getPassword())
+                .accountNumber(customer.getAccountNumber()).password(passwordEncoder.encode(request.getPassword()))
                 .userName(request.getUserName()).transactionPin(request.getPreferredTransactionPin())
-                .role(Role.CUSTOMER)
+                .role(String.valueOf(Role.CUSTOMER))
                 .build();
     }
 

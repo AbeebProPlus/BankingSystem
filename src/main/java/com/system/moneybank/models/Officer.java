@@ -15,20 +15,17 @@ import java.util.List;
 @Setter
 public class Officer {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     @NotBlank(message = "Fist name cannot be blank")
     private String firstName;
     @NotBlank(message = "Last name cannot be blank")
     private String lastName;
     @NotBlank(message = "Username is required")
     private String userName;
-
     @NotBlank(message = "Username is required")
     private String password;
-
     private String role;
-
     @OneToMany(mappedBy = "officer", fetch = FetchType.LAZY)
     List<BankingHallTransaction> doneTransactions = new ArrayList<>();
 }

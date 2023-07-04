@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AuthResponse {
+    private Long userId;
     private String token;
     private String message;
 }

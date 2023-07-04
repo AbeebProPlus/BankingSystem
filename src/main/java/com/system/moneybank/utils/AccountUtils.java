@@ -6,6 +6,7 @@ import java.time.Year;
 
 public class AccountUtils {
     private static final String issuerIdentifier = "5045";
+    private static final String bankIdentifier = "2045";
     public static final String ACCOUNT_EXISTS_CODE = "001";
     public static final String ACCOUNT_EXISTS_MESSAGE = "Sorry, this user already has an account created";
 
@@ -49,13 +50,18 @@ public class AccountUtils {
     public static final String CARD_DEACTIVATION_FAILED_MESSAGE = "Card deactivation failed";
     public static final String CARD_PIN_CHANGED_CODE = "016";
     public static final String CARD_PIN_CHANGED_FAILURE = "017";
+
+    public static final String CARD_REACTIVATION_SUCCESSFUL = "018";
+    public static final String CARD_REACTIVATION_SUCCESS_MESSAGE = "Card reactivated successfully";
+
+    public static final String CARD_REACTIVATION_FAILED = "019";
+
     public static String generateAccountNumber(){
         int min = 100000;
         int max = 999999;
         int randomNumber = (int) Math.floor(Math.random() * (max - min + 1) + min);
         String randomNum = String.valueOf(randomNumber);
-        String year = String.valueOf(Year.now());
-        return year + randomNum;
+        return bankIdentifier + randomNum;
     }
 
     public static String generateCardNumber() {

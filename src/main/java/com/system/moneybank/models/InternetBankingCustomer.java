@@ -1,18 +1,24 @@
 package com.system.moneybank.models;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Data
 @AllArgsConstructor
 @Builder
 @NoArgsConstructor
-public class InternetBankingCustomer {
+public class InternetBankingCustomer{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,6 +30,5 @@ public class InternetBankingCustomer {
     private String password;
     @NotBlank(message = "Transaction pin cannot be empty")
     private String transactionPin;
-    @Enumerated(EnumType.STRING)
-    private Role role;
+    private String role;
 }

@@ -30,8 +30,7 @@ public class Card {
     private String cv2;
     @NotBlank(message = "Give card a pin")
     private String pin;
-    @NotBlank(message = "Provide issuer name")
-    private String issuingOfficerId;
+    private Long issuingOfficerId;
     private String accountNumber;
     private Long customerId;
     @Enumerated(EnumType.STRING)
