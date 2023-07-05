@@ -11,5 +11,4 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class DeactivateCard {
     private String accountNumber;
-    private String cardNumber;
 }

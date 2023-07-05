@@ -48,6 +48,8 @@ public class Transaction {
     @ManyToOne
     @JoinColumn(name = "cutomer_id")
     private Customer customer;
-    @NotBlank(message = "Officer name is required")
-    private String processedBy;
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "officer_id")
+    private Officer officer;
 }

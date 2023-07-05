@@ -80,7 +80,7 @@ public class InternetBankingController {
                     "The customer also receive an alert through their mail"
     )
     @PostMapping("card_deactivation")
-    @PreAuthorize("hasAuthority('OFFICER')")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
     public ResponseEntity<?> deactivateCard(@RequestBody CardDeactivationRequest request){
         return new ResponseEntity<>(internetBankingService.deActivateCard(request), HttpStatus.OK);
     }

@@ -51,10 +51,10 @@ public class AccountUtils {
     public static final String CARD_PIN_CHANGED_CODE = "016";
     public static final String CARD_PIN_CHANGED_FAILURE = "017";
 
-    public static final String CARD_REACTIVATION_SUCCESSFUL = "018";
-    public static final String CARD_REACTIVATION_SUCCESS_MESSAGE = "Card reactivated successfully";
+    public static final String CARD_ACTIVATION_SUCCESSFUL = "018";
+    public static final String CARD_ACTIVATION_SUCCESS_MESSAGE = "Card reactivated successfully";
 
-    public static final String CARD_REACTIVATION_FAILED = "019";
+    public static final String CARD_ACTIVATION_FAILED = "019";
 
     public static String generateAccountNumber(){
         int min = 100000;
@@ -62,28 +62,6 @@ public class AccountUtils {
         int randomNumber = (int) Math.floor(Math.random() * (max - min + 1) + min);
         String randomNum = String.valueOf(randomNumber);
         return bankIdentifier + randomNum;
-    }
-
-    public static String generateCardNumber() {
-        int min = 100_000_000;
-        int max = 999_999_999;
-        int randomNumber = (int) Math.floor(Math.random() * (max - min + 1) + min);
-        String randomNum = String.valueOf(randomNumber);
-        String year = String.valueOf(Year.now().getValue() % 100);
-        return issuerIdentifier + year + randomNum.substring(0, 3) + "0" + randomNum.substring(3);
-    }
-    public static String generateCv2() {
-        int min = 100;
-        int max = 999;
-        int randomNumber = (int) Math.floor(Math.random() * (max - min + 1) + min);
-        return String.valueOf(randomNumber);
-    }
-
-    public static String generateDefaultCardPin() {
-        int min = 1000;
-        int max = 9999;
-        int randomNumber = (int) Math.floor(Math.random() * (max - min + 1) + min);
-        return String.valueOf(randomNumber);
     }
 
 }

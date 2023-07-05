@@ -1,5 +1,5 @@
 package com.system.moneybank.models;
 
 public enum TransactionType {
-    CREDIT, DEBIT
+    CREDIT, DEBIT, E_CREDIT, E_DEBIT
 }

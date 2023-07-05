@@ -90,15 +90,7 @@ public class OfficerController {
     public ResponseEntity<?> getCustomerTransactions(@RequestBody TransactionHistoryRequest request){
         return new ResponseEntity<>(officerService.getAllTransactionsDoneByCustomer(request), HttpStatus.OK);
     }
-    @Operation(
-            summary = "Gets all customers' transaction history (banking hall debits and credit transactions)",
-            description = "Gets all customers' transactions (banking hall debits and credit transactions)"
-    )
-    @GetMapping("all_bank_transactions")
-    @PreAuthorize("hasAuthority('OFFICER')")
-    public ResponseEntity<?> viewAllBankingHallTransactions(){
-        return new ResponseEntity<>(officerService.viewAllBankingHallTransactions(), HttpStatus.OK);
-    }
+
     @Operation(
             summary = "Restricts a customer's account",
             description = "Restricted account wil not be able to receive or send money. Customer will also be alerted through their email address"
@@ -121,7 +113,7 @@ public class OfficerController {
     @Operation(
             summary = "Creates a card for a customer",
             description = "Creates a card for a customer and deducts service fee of 1000 fom the customer's account, " +
-                    "Customer will also receive a mail alert"
+                    "Customer will also receive a mail alert. This card is unactivated and the pin provided cannot be used for transactions until a bank officer activates it"
     )
     @PostMapping("card_creation")
     @PreAuthorize("hasAuthority('OFFICER')")
@@ -133,7 +125,7 @@ public class OfficerController {
     @Operation(
             summary = "Deactivates a customer's card",
             description = "Deactivates a customer's card. Card cannot be used for any transaction. " +
-                    "The customer also receive an alert through their mail"
+                    "Customers also receive an alert through their mail"
     )
     @PostMapping("card_deactivation")
     @PreAuthorize("hasAuthority('OFFICER')")
@@ -150,6 +142,15 @@ public class OfficerController {
     @PostMapping("card_reactivation")
     @PreAuthorize("hasAuthority('OFFICER')")
     public ResponseEntity<?> reactivateCard(@RequestBody DeactivateCard request){
+        return new ResponseEntity<>(officerService.reActivateCard(request), HttpStatus.OK);
+    }
+    @Operation(
+            summary = "Activates a new card",
+            description = "Customers are required to replace the default pin that comes with a new card"
+    )
+    @PostMapping("card_activation")
+    @PreAuthorize("hasAuthority('OFFICER')")
+    public ResponseEntity<?> activateCard(@RequestBody ChangeCardPinRequest request){
         return new ResponseEntity<>(officerService.activateCard(request), HttpStatus.OK);
     }
 }

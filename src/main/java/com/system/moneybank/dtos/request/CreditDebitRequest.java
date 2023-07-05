@@ -15,20 +15,8 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CreditDebitRequest {
-    @NotEmpty(message = "Amount cannot be empty")
-    @NotBlank(message = "Amount cannot be empty")
-    @NotNull(message = "Amount cannot be empty")
     private BigDecimal amount;
-    @NotEmpty(message = "Amount cannot be empty")
-    @NotBlank(message = "Amount cannot be empty")
-    @NotNull(message = "Amount cannot be empty")
     private String accountNumber;
-    @NotEmpty(message = "Amount cannot be empty")
-    @NotBlank(message = "Amount cannot be empty")
-    @NotNull(message = "Amount cannot be empty")
     private String depositorName;
-    @NotEmpty(message = "Amount cannot be empty")
-    @NotBlank(message = "Amount cannot be empty")
-    @NotNull(message = "Amount cannot be empty")
-    private String officerId;
+    private Long officerId;
 }

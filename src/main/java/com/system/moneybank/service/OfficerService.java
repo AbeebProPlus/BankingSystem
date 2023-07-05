@@ -2,9 +2,10 @@ package com.system.moneybank.service;
 
 import com.system.moneybank.dtos.request.*;
 import com.system.moneybank.dtos.response.*;
-import com.system.moneybank.models.BankingHallTransaction;
+import com.system.moneybank.models.Officer;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface OfficerService {
     AuthResponse authenticateAndGetToken(AuthRequest authRequest);
@@ -14,10 +15,13 @@ public interface OfficerService {
     Response creditAccount(CreditDebitRequest request);
     Response debitAccount(CreditDebitRequest request);
     TransactionHistoryResponse getAllTransactionsDoneByCustomer(TransactionHistoryRequest request);
-    List<BankingHallTransaction> viewAllBankingHallTransactions();
+//    List<BankingHallTransaction> viewAllBankingHallTransactions();
     RestrictAccountResponse restrictBankAccount(RestrictAccountRequest request);
     RestrictAccountResponse activateBankAccount(ActivateAccount request);
+    CardResponse activateCard(ChangeCardPinRequest request);
     CardResponse createCard(RequestForCard request);
     CardResponse deActivateCard(DeactivateCard request);
-    CardResponse activateCard(DeactivateCard request);
+    CardResponse reActivateCard(DeactivateCard request);
+
+    Optional<Officer> findById(Long id);
 }

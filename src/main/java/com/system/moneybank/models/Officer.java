@@ -27,5 +27,5 @@ public class Officer {
     private String password;
     private String role;
     @OneToMany(mappedBy = "officer", fetch = FetchType.LAZY)
-    List<BankingHallTransaction> doneTransactions = new ArrayList<>();
+    List<Transaction> doneTransactions = new ArrayList<>();
 }

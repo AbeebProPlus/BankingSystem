@@ -25,13 +25,11 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static com.system.moneybank.models.AccountStatus.RESTRICTED;
-import static com.system.moneybank.models.CardStatus.DEACTIVATED;
-import static com.system.moneybank.models.CardStatus.EXPIRED;
+import static com.system.moneybank.models.CardStatus.*;
 import static com.system.moneybank.models.TransactionStatus.SUCCESS;
-import static com.system.moneybank.models.TransactionType.CREDIT;
-import static com.system.moneybank.models.TransactionType.DEBIT;
+import static com.system.moneybank.models.TransactionType.*;
 import static com.system.moneybank.utils.AccountUtils.*;
-import static com.system.moneybank.utils.AccountUtils.CARD_DEACTIVATION_FAILED;
+
 
 @Service
 @RequiredArgsConstructor
@@ -80,7 +78,8 @@ public class InternetBankingServiceImpl implements InternetBankingService{
             Card card = cardService.findCardByCustomerId(customer.getId());
             checkIfCardIsNull(card);
             checkCardStatus(card);
-            if (!card.getPin().equals(request.getCardPin())) throw new CardException("Provide correct card details");
+            if (!compareDetails(request.getCardNumber(), card.getCardNumber())) throw new CardException("Provide correct card details");
+            if (!compareDetails(request.getCardPin(), card.getPin())) throw new CardException("Provide correct card details");
             InternetBankingCustomer iCustomer = getiCustomer(request, customer);
             InternetBankingCustomer iCustomer2 = internetBankingCustomersRepo.save(iCustomer);
             return InternetBankingRegistrationResponse.builder().id(iCustomer2.getId()).message("Sign up successful").build();
@@ -88,27 +87,25 @@ public class InternetBankingServiceImpl implements InternetBankingService{
             return InternetBankingRegistrationResponse.builder().message(ex.getMessage()).build();
         }
     }
+    private void checkCardStatus(Card card) {
+        if (card.getStatus() == EXPIRED || card.getStatus() == DEACTIVATED) throw new CardException("Invalid card");
+    }
+
+    private void checkIfCardIsNull(Card card) {
+        if (card == null) throw new CardException("Provide correct card details");
+    }
     @Override
     public CardResponse deActivateCard(CardDeactivationRequest request) {
-        try {
-            Customer customer = userService.findByAccountNumber(request.getAccountNumber());
-            if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
-            Card card = cardService.findCardByNumber(request.getCardNumber());
-            if (card == null) throw new RuntimeException("Card doesn't exists");
-            if (!Objects.equals(card.getPin(), request.getCardPin())) throw new CardException("Invalid card details");
-            card.setStatus(CardStatus.DEACTIVATED);
-            cardService.saveCard(card);
-            return CardResponse.builder().code(CARD_DEACTIVATION_SUCCESSFUL).message(CARD_DEACTIVATION_SUCCESS_MESSAGE).build();
-        }catch (Exception ex){
-            return CardResponse.builder().code(CARD_DEACTIVATION_FAILED).message(ex.getMessage()).build();
-        }
+        return cardService.deActivateCard(request);
     }
 
     @Override
     public Response transfer(TransferRequest request) {
         boolean isValidDestination = userService.existsByAccountNumber(request.getDestinationAccountNumber());
-        if (!isValidDestination) return Response.builder().code(ACCOUNT_NOT_FOUND_CODE).message(INVALID_DESTINATION_MESSAGE).build();
-        InternetBankingCustomer internetBankingCustomer = internetBankingCustomersRepo.findByAccountNumber(request.getDestinationAccountNumber());
+        if (!isValidDestination) return Response.builder().code(ACCOUNT_NOT_FOUND_CODE)
+                .message(INVALID_DESTINATION_MESSAGE).build();
+        InternetBankingCustomer internetBankingCustomer = internetBankingCustomersRepo.findByAccountNumber(request.getSourceAccountNumber());
+        System.out.println(internetBankingCustomer);
         Customer sourceAccount = userService.findByAccountNumber(request.getSourceAccountNumber());
         checkIfSourceAccountIsSignedUpForInternetBanking(internetBankingCustomer, sourceAccount);
         checkAccountStatus(sourceAccount, "PERMISSION DENIED. SOURCE ACCOUNT WAS RESTRICTED");
@@ -122,23 +119,22 @@ public class InternetBankingServiceImpl implements InternetBankingService{
 
         userService.save(destinationAccount);
         userService.save(sourceAccount);
-        Transaction sourceTransaction = Transaction.builder().type(DEBIT).amount(request.getAmount()).accountNumber(destinationAccount.getAccountNumber())
-                .customer(sourceAccount).status(SUCCESS).date(LocalDate.now()).time(LocalTime.now())
-                .processedBy("SELF").build();
+        Transaction sourceTransaction = Transaction.builder().type(E_DEBIT).amount(request.getAmount()).accountNumber(destinationAccount.getAccountNumber())
+                .customer(sourceAccount).status(SUCCESS).date(LocalDate.now()).time(LocalTime.now()).build();
         transactionService.save(sourceTransaction);
         sourceAccount.getTransactionList().add(sourceTransaction);
         String debitMessage = "\nDear "+ sourceAccount.getFirstName() + "\nA debit transaction occurred on your account." +
-                "\"Amount: " + request.getAmount() + "\nCurrent balance: "  + sourceAccount.getAccountBalance() +
+                "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + sourceAccount.getAccountBalance() +
                 "\nDestination: " + destinationAccount.getFirstName() + " " + destinationAccount.getLastName() + "\nDate: " + LocalDate.now() +  "\nTime: " + LocalTime.now();
-        Transaction destinationTransaction = Transaction.builder().type(CREDIT).amount(request.getAmount()).accountNumber(sourceAccount.getAccountNumber())
+        Transaction destinationTransaction = Transaction.builder().type(E_CREDIT).amount(request.getAmount()).accountNumber(sourceAccount.getAccountNumber())
                 .customer(destinationAccount).status(SUCCESS).date(LocalDate.now()).time(LocalTime.now())
-                .processedBy(sourceAccount.getFirstName() + " " + sourceAccount.getLastName()).build();
+                .build();
         transactionService.save(destinationTransaction);
         destinationAccount.getTransactionList().add(destinationTransaction);
         EmailDetails debitDetails = mailMessage(sourceAccount, "Debit transaction notification", sourceAccount.getEmail(), debitMessage);
         emailSenderService.sendMail(debitDetails);
         String creditMessage = "\nDear "+ destinationAccount.getFirstName() + "\nA credit transaction occurred on your account." +
-                "\"Amount: " + request.getAmount() + "\nCurrent balance: "  + destinationAccount.getAccountBalance() +
+                "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + destinationAccount.getAccountBalance() +
                 "\nFrom: " + sourceAccount.getFirstName() + " " + sourceAccount.getLastName() + "\nDate: " + LocalDate.now() + "\nTime: " + LocalTime.now();
 
         EmailDetails creditDetails = mailMessage(sourceAccount, "Credit transaction notification", destinationAccount.getEmail(), creditMessage);
@@ -158,19 +154,7 @@ public class InternetBankingServiceImpl implements InternetBankingService{
 
     @Override
     public CardResponse changeCardPin(ChangeCardPinRequest request) {
-        try {
-            Card card = cardService.findCardByAccountNumber(request.getAccountNumber());
-            if (card == null) throw new CardException("Invalid details");
-            Card foundCard = cardService.findCardByNumber(request.getCardNumber());
-            checkIfCardIsNull(foundCard);
-            checkCardStatus(foundCard);
-            if (!Objects.equals(foundCard.getPin(), request.getOldPin())) throw new CardException("Invalid details");
-            foundCard.setPin(request.getNewPin());
-            cardService.saveCard(foundCard);
-            return CardResponse.builder().code(CARD_PIN_CHANGED_CODE).message("Card pin changed successfully").build();
-        }catch (Exception ex){
-            return CardResponse.builder().code(CARD_PIN_CHANGED_FAILURE).message(ex.getMessage()).build();
-        }
+        return cardService.changeCardPin(request);
     }
 
     @Override
@@ -211,26 +195,19 @@ public class InternetBankingServiceImpl implements InternetBankingService{
                 .message(message)
                 .build();
     }
-    private void checkCardStatus(Card card) {
-        if (card.getStatus() == EXPIRED || card.getStatus() == DEACTIVATED) throw new CardException("Invalid card");
-    }
-
-    private void checkIfCardIsNull(Card card) {
-        if (card == null) throw new CardException("Provide correct card details");
-    }
 
     private InternetBankingCustomer getiCustomer(RegisterForInternetBanking request, Customer customer) {
         return InternetBankingCustomer.builder()
                 .accountNumber(customer.getAccountNumber()).password(passwordEncoder.encode(request.getPassword()))
-                .userName(request.getUserName()).transactionPin(request.getPreferredTransactionPin())
+                .userName(request.getUserName()).transactionPin(hashDetails(request.getPreferredTransactionPin()))
                 .role(String.valueOf(Role.CUSTOMER))
                 .build();
     }
 
-    private String hashDetails(String detail){
+    private static String hashDetails(String detail){
         return BCrypt.hashpw(detail, BCrypt.gensalt());
     }
-    private boolean confirmPassword(String candidate, String detail){
+    private static boolean compareDetails(String candidate, String detail){
         return BCrypt.checkpw(candidate, detail);
     }
 }

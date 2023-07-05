@@ -10,12 +10,10 @@ import com.system.moneybank.repository.OfficerRepo;
 import com.system.moneybank.service.emailService.EmailDetails;
 import com.system.moneybank.service.emailService.EmailSenderService;
 import com.system.moneybank.service.security.JwtService;
-import com.system.moneybank.service.smsService.Sms;
 import com.system.moneybank.service.smsService.SmsService;
 import com.system.moneybank.utils.AccountUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -26,14 +24,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.Year;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
+
 import java.util.Optional;
 
 import static com.system.moneybank.models.AccountStatus.ACTIVE;
 import static com.system.moneybank.models.AccountStatus.RESTRICTED;
-import static com.system.moneybank.models.CardType.DEBIT_CARD;
 import static com.system.moneybank.models.TransactionStatus.SUCCESS;
 import static com.system.moneybank.models.TransactionType.CREDIT;
 import static com.system.moneybank.models.TransactionType.DEBIT;
@@ -103,8 +98,9 @@ public class OfficerServiceImpl implements OfficerService{
         if (isInValidAmount(request)) return Response.builder().code(ACCOUNT_CREDIT_DECLINED_CODE).message(ACCOUNT_CREDIT_DECLINED_MESSAGE).build();
         Customer creditedUser = creditCustomer(request);
         Officer officer = officerRepo.findById(request.getOfficerId()).orElseThrow(() -> new OfficerNotFoundException("Officer not found"));
-        BankingHallTransaction bankingHallTransaction = createTransaction(request, creditedUser, CREDIT, SUCCESS, officer);
-        transactionService.saveTransaction(bankingHallTransaction);
+        Transaction transaction = transactionService.createTransaction(request, creditedUser, CREDIT, SUCCESS, officer);
+        transactionService.save(transaction);
+        officer.getDoneTransactions().add(transaction);
         String message = "\nDear " + creditedUser.getFirstName() + "\nA credit transaction occurred on your account " +
                 "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + creditedUser.getAccountBalance() +
                 "\nFrom: " + request.getDepositorName() + "\nDate: " + LocalDate.now() + "\nTime: " + LocalTime.now();
@@ -114,15 +110,6 @@ public class OfficerServiceImpl implements OfficerService{
         emailSenderService.sendMail(details);
         return transactionResponse(creditedUser, ACCOUNT_CREDITED_CODE, ACCOUNT_CREDITED_MESSAGE);
     }
-
-    private BankingHallTransaction createTransaction(CreditDebitRequest request, Customer creditedUser,
-                                                     TransactionType type, TransactionStatus status, Officer officer) {
-        return BankingHallTransaction.builder()
-                .amount(request.getAmount()).accountNumber(creditedUser.getAccountNumber())
-                .processedBy(officer.getUserName()).type(type).status(status).date(LocalDate.now())
-                .time(LocalTime.now()).officer(officer).build();
-    }
-
 
     @Override
     public Response debitAccount(CreditDebitRequest request) {
@@ -134,8 +121,9 @@ public class OfficerServiceImpl implements OfficerService{
         if (request.getAmount().compareTo(amountInUserAccount) > 0) return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
         Customer debitedUser = debitCustomer(request);
         Officer officer = officerRepo.findById(request.getOfficerId()).orElseThrow(() -> new OfficerNotFoundException("Officer not found"));
-        BankingHallTransaction bankingHallTransaction = createTransaction(request, debitedUser, DEBIT, SUCCESS, officer);
-        transactionService.saveTransaction(bankingHallTransaction);
+        Transaction transaction = transactionService.createTransaction(request, debitedUser, DEBIT, SUCCESS, officer);
+        transactionService.save(transaction);
+        officer.getDoneTransactions().add(transaction);
         String message = "\nDear " + debitedUser.getFirstName() + " \nA debit transaction occurred on your account." +
                 "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + debitedUser.getAccountBalance() + "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
         EmailDetails details = mailMessage(debitedUser, "Debit transaction notification", debitedUser.getEmail(), message);
@@ -153,20 +141,13 @@ public class OfficerServiceImpl implements OfficerService{
 
     @Override
     public TransactionHistoryResponse getAllTransactionsDoneByCustomer(TransactionHistoryRequest request) {
-        try {
-            Customer customer = userService.findByAccountNumber(request.getAccountNumber());
-            if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
-            if (customer.getTransactionList().size()==0) return TransactionHistoryResponse.builder().code(ACCOUNT_FOUND_CODE).message("No transactions").transactionList(customer.getTransactionList()).build();
-            return TransactionHistoryResponse.builder().code(ACCOUNT_FOUND_CODE).message(ACCOUNT_FOUND_MESSAGE).transactionList(customer.getTransactionList()).build();
-        } catch (Exception ex) {
-            return TransactionHistoryResponse.builder().code(ACCOUNT_NOT_FOUND_CODE).message(ex.getMessage()).transactionList(null).build();
-        }
+        return transactionService.getAllTransactionsDoneByCustomer(request);
     }
 
-    @Override
-    public List<BankingHallTransaction> viewAllBankingHallTransactions() {
-        return transactionService.viewAllBankingHallTransactions();
-    }
+//    @Override
+//    public List<BankingHallTransaction> viewAllBankingHallTransactions() {
+//        return transactionService.viewAllBankingHallTransactions();
+//    }
 
     @Override
     public RestrictAccountResponse restrictBankAccount(RestrictAccountRequest request) {
@@ -207,90 +188,30 @@ public class OfficerServiceImpl implements OfficerService{
     }
 
     @Override
+    public CardResponse activateCard(ChangeCardPinRequest request) {
+        return cardService.activateCard(request);
+    }
+
+    @Override
     public CardResponse createCard(RequestForCard request) {
-        try {
-            Customer customer = userService.findByAccountNumber(request.getAccountNumber());
-            if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
-            if (customer.getAccountBalance().compareTo(new BigDecimal("1000")) < 0)
-                throw new CustomerNotFound("Insufficient funds");
-            Officer officer = officerRepo.findById(request.getOfficerId())
-                    .orElseThrow(() -> new OfficerNotFoundException("OFFICER NOT FOUND"));
-            Card foundCard = cardService.findCardByAccountNumber(request.getAccountNumber());
-            if (foundCard == null){
-                processCard(request, customer, officer);
-            }else if (foundCard.getStatus() != CardStatus.DEACTIVATED || foundCard.getStatus() != CardStatus.EXPIRED) {
-                throw new RuntimeException("THIS ACCOUNT HAS AN ACTIVE CARD");
-            }
-            return CardResponse.builder().code(CARD_CREATION_CODE).message(CARD_CREATION_MESSAGE).build();
-        }catch (Exception ex){
-            return CardResponse.builder().code(CARD_CREATION_FAILURE).message(ex.getMessage()).build();
-        }
+        return cardService.createCard(request);
     }
 
-    private void processCard(RequestForCard request, Customer customer, Officer officer) {
-        Card newCard = buildCard(request, customer, officer);
-        cardService.saveCard(newCard);
-        BigDecimal amount = customer.getAccountBalance().subtract(new BigDecimal("1000"));
-        customer.setAccountBalance(amount);
-        userService.save(customer);
-        String message = "\nDear " + customer.getFirstName() + " \nA debit transaction occurred on your account.\nPurpose: Card issuance fee\n" +
-                "\nAmount: " + 1000 + "\nCurrent balance: "  + customer.getAccountBalance() + "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
-        EmailDetails details = mailMessage(customer, "Debit transaction notification", customer.getEmail(), message);
-        emailSenderService.sendMail(details);
-    }
-
-    private Card buildCard(RequestForCard request, Customer customer, Officer officer) {
-        return Card.builder().cardNumber(AccountUtils.generateCardNumber()).customerId(customer.getId())
-                .cardType(DEBIT_CARD).cardName(customer.getFirstName() + " " + customer.getLastName() + " " + customer.getLastName())
-                .expiryMonth(LocalDate.now().format(DateTimeFormatter.ofPattern("MM"))).expiryYear(String.valueOf(Year.now().plusYears(5).getValue()))
-                .issuingOfficerId(officer.getId()).cv2(AccountUtils.generateCv2()).status(CardStatus.ACTIVATED)
-                .accountNumber(customer.getAccountNumber()).pin(AccountUtils.generateDefaultCardPin()).build();
-    }
 
     @Override
     public CardResponse deActivateCard(DeactivateCard request) {
-        try {
-            Customer customer = getByAccountNumber(request);
-            if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
-            Card card = cardService.findCardByNumber(request.getCardNumber());
-            if (card == null) throw new RuntimeException("Card doesn't exists");
-            card.setStatus(CardStatus.DEACTIVATED);
-            cardService.saveCard(card);
-            String message = "\nDear " + customer.getFirstName() + " \nYour debit card has been restricted." +
-                    "\n Please visit any of our branches to rectify this issue" +
-                    "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
-            EmailDetails details = mailMessage(customer, "Debit card restricted",
-                    customer.getEmail(), message);
-            emailSenderService.sendMail(details);
-            return CardResponse.builder().code(CARD_DEACTIVATION_SUCCESSFUL).message(CARD_DEACTIVATION_SUCCESS_MESSAGE).build();
-        }catch (Exception ex){
-            return CardResponse.builder().code(CARD_DEACTIVATION_FAILED).message(ex.getMessage()).build();
-        }
+        return cardService.deActivateCardByOfficer(request);
     }
 
-    private Customer getByAccountNumber(DeactivateCard request) {
-        return userService.findByAccountNumber(request.getAccountNumber());
+
+    @Override
+    public CardResponse reActivateCard(DeactivateCard request) {
+       return cardService.reActivateCard(request);
     }
 
     @Override
-    public CardResponse activateCard(DeactivateCard request) {
-        try {
-            Customer customer = getByAccountNumber(request);
-            if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);
-            Card card = cardService.findCardByNumber(request.getCardNumber());
-            if (card == null) throw new RuntimeException("Card doesn't exists");
-            card.setStatus(CardStatus.ACTIVATED);
-            cardService.saveCard(card);
-            String message = "\nDear " + customer.getFirstName() + " \nYour debit card has been re-activated." +
-                    "\n Transactions are now permitted with your card" +
-                    "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
-            EmailDetails details = mailMessage(customer, "Debit card re-activated",
-                    customer.getEmail(), message);
-            emailSenderService.sendMail(details);
-            return CardResponse.builder().code(CARD_REACTIVATION_SUCCESSFUL).message(CARD_REACTIVATION_SUCCESS_MESSAGE).build();
-        }catch (Exception ex){
-            return CardResponse.builder().code(CARD_REACTIVATION_FAILED).message(ex.getMessage()).build();
-        }
+    public Optional<Officer> findById(Long officerId) {
+        return officerRepo.findById(officerId);
     }
 
 
@@ -364,10 +285,4 @@ public class OfficerServiceImpl implements OfficerService{
         return officer.isPresent();
     }
 
-    private String hashDetails(String detail){
-        return BCrypt.hashpw(detail, BCrypt.gensalt());
-    }
-    private boolean confirmPassword(String candidate, String detail){
-        return BCrypt.checkpw(candidate, detail);
-    }
 }

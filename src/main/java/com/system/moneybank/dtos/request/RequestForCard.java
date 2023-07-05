@@ -12,5 +12,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RequestForCard {
     private String accountNumber;
-    private String officerId;
+    private Long officerId;
 }
