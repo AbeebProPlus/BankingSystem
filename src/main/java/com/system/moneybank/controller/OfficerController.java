@@ -4,9 +4,7 @@ package com.system.moneybank.controller;
 import com.system.moneybank.dtos.request.*;
 import com.system.moneybank.service.OfficerService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/officer/")
 @Tag(name = "Officer Account API's")
-
+@CrossOrigin(origins = "*")
 public class OfficerController {
     private final OfficerService officerService;
 
@@ -38,7 +36,7 @@ public class OfficerController {
 
     @PostMapping("new_account")
     @PreAuthorize("hasAuthority('OFFICER')")
-    public ResponseEntity<?> createAccount(@Valid @RequestBody CreateAccountRequest request){
+    public ResponseEntity<?> createAccount(@RequestBody CreateAccountRequest request){
         return new ResponseEntity<>(officerService.createBankAccount(request), HttpStatus.OK);
     }
     @Operation(
@@ -153,4 +151,14 @@ public class OfficerController {
     public ResponseEntity<?> activateCard(@RequestBody ChangeCardPinRequest request){
         return new ResponseEntity<>(officerService.activateCard(request), HttpStatus.OK);
     }
+
+    @Operation(
+            summary = "Retrieves all transactions done by an officer"
+    )
+    @GetMapping("transactions/{id}")
+    @PreAuthorize("hasAuthority('OFFICER')")
+    public ResponseEntity<?> activateCard(@PathVariable Long id){
+        return new ResponseEntity<>(officerService.retrieveOfficerTransactions(id), HttpStatus.OK);
+    }
+
 }

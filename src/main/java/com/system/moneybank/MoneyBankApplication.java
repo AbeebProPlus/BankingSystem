@@ -11,7 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 @OpenAPIDefinition(
         info = @Info(
-            title = "Money Bank: A Banking Management System",
+            title = "Lemonade Bank: A Banking Management System",
             description = """
                      Backend REST APIS for a banking management system. 
                      This system has been secured using jwt security. 

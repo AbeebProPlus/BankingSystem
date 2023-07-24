@@ -45,11 +45,11 @@ public class Transaction {
     private TransactionStatus status;
 
     @JsonIgnore
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cutomer_id")
     private Customer customer;
     @JsonIgnore
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "officer_id")
     private Officer officer;
 }

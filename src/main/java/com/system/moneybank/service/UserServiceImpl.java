@@ -56,6 +56,4 @@ public class UserServiceImpl implements  UserService{
         return userRepo.existsByPhoneNumber(phoneNumber);
     }
 
-
-
 }

@@ -3,6 +3,7 @@ package com.system.moneybank.service;
 import com.system.moneybank.dtos.request.*;
 import com.system.moneybank.dtos.response.*;
 import com.system.moneybank.models.Officer;
+import com.system.moneybank.models.Transaction;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,5 +24,5 @@ public interface OfficerService {
     CardResponse deActivateCard(DeactivateCard request);
     CardResponse reActivateCard(DeactivateCard request);
 
-    Optional<Officer> findById(Long id);
+    List<Transaction> retrieveOfficerTransactions(Long id);
 }

@@ -7,20 +7,21 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/transaction/")
+@CrossOrigin(origins = "*")
 @Tag(name = "Transaction Api")
 public class TransactionController {
     private final TransactionService transactionService;
 
     @Operation(
-            summary = "Gets details of a particular transaction done by a customer on internet banking"
+            summary = "Gets details of a particular transaction done by a customer on internet banking",
+            description = "Gets details of a particular transaction done by a customer on internet banking. Only" +
+                    "an officer can access this service. Hence you need a token that was generated when the officer/login" +
+                    "endpoint was called"
     )
     @GetMapping("{transactionId}")
     @PreAuthorize("hasAuthority('OFFICER')")

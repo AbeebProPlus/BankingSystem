@@ -25,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+import java.util.List;
 import java.util.Optional;
 
 import static com.system.moneybank.models.AccountStatus.ACTIVE;
@@ -97,10 +98,11 @@ public class OfficerServiceImpl implements OfficerService{
         if (!accountExists) return Response.builder().code(ACCOUNT_NOT_FOUND_CODE).message(ACCOUNT_NOT_FOUND_MESSAGE).build();
         if (isInValidAmount(request)) return Response.builder().code(ACCOUNT_CREDIT_DECLINED_CODE).message(ACCOUNT_CREDIT_DECLINED_MESSAGE).build();
         Customer creditedUser = creditCustomer(request);
-        Officer officer = officerRepo.findById(request.getOfficerId()).orElseThrow(() -> new OfficerNotFoundException("Officer not found"));
+        Officer officer = confirmOfficer(request.getOfficerId());
         Transaction transaction = transactionService.createTransaction(request, creditedUser, CREDIT, SUCCESS, officer);
         transactionService.save(transaction);
         officer.getDoneTransactions().add(transaction);
+        creditedUser.getTransactionList().add(transaction);
         String message = "\nDear " + creditedUser.getFirstName() + "\nA credit transaction occurred on your account " +
                 "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + creditedUser.getAccountBalance() +
                 "\nFrom: " + request.getDepositorName() + "\nDate: " + LocalDate.now() + "\nTime: " + LocalTime.now();
@@ -109,6 +111,10 @@ public class OfficerServiceImpl implements OfficerService{
         EmailDetails details = mailMessage(creditedUser, "Credit transaction notification", creditedUser.getEmail(), message);
         emailSenderService.sendMail(details);
         return transactionResponse(creditedUser, ACCOUNT_CREDITED_CODE, ACCOUNT_CREDITED_MESSAGE);
+    }
+
+    private Officer confirmOfficer(Long id) {
+        return officerRepo.findById(id).orElseThrow(() -> new OfficerNotFoundException("Officer not found"));
     }
 
     @Override
@@ -120,10 +126,11 @@ public class OfficerServiceImpl implements OfficerService{
         if (isInValidAmount(request)) return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
         if (request.getAmount().compareTo(amountInUserAccount) > 0) return Response.builder().code(ACCOUNT_DEBIT_DECLINED_CODE).message(ACCOUNT_DEBIT_DECLINED_MESSAGE).build();
         Customer debitedUser = debitCustomer(request);
-        Officer officer = officerRepo.findById(request.getOfficerId()).orElseThrow(() -> new OfficerNotFoundException("Officer not found"));
+        Officer officer = confirmOfficer(request.getOfficerId());
         Transaction transaction = transactionService.createTransaction(request, debitedUser, DEBIT, SUCCESS, officer);
         transactionService.save(transaction);
         officer.getDoneTransactions().add(transaction);
+        debitedUser.getTransactionList().add(transaction);
         String message = "\nDear " + debitedUser.getFirstName() + " \nA debit transaction occurred on your account." +
                 "\nAmount: " + request.getAmount() + "\nCurrent balance: "  + debitedUser.getAccountBalance() + "\nDate: " + LocalDateTime.now() + "\nTime: " + LocalTime.now();
         EmailDetails details = mailMessage(debitedUser, "Debit transaction notification", debitedUser.getEmail(), message);
@@ -143,11 +150,6 @@ public class OfficerServiceImpl implements OfficerService{
     public TransactionHistoryResponse getAllTransactionsDoneByCustomer(TransactionHistoryRequest request) {
         return transactionService.getAllTransactionsDoneByCustomer(request);
     }
-
-//    @Override
-//    public List<BankingHallTransaction> viewAllBankingHallTransactions() {
-//        return transactionService.viewAllBankingHallTransactions();
-//    }
 
     @Override
     public RestrictAccountResponse restrictBankAccount(RestrictAccountRequest request) {
@@ -210,8 +212,8 @@ public class OfficerServiceImpl implements OfficerService{
     }
 
     @Override
-    public Optional<Officer> findById(Long officerId) {
-        return officerRepo.findById(officerId);
+    public List<Transaction> retrieveOfficerTransactions(Long officerId) {
+        return officerRepo.findById(officerId).get().getDoneTransactions();
     }
 
 

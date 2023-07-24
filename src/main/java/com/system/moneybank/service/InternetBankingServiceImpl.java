@@ -37,7 +37,6 @@ public class InternetBankingServiceImpl implements InternetBankingService{
 
     private final InternetBankingCustomersRepo internetBankingCustomersRepo;
     private final TransactionService transactionService;
-
     private final EmailSenderService emailSenderService;
     private final CardService cardService;
     private final UserService userService;
@@ -105,7 +104,6 @@ public class InternetBankingServiceImpl implements InternetBankingService{
         if (!isValidDestination) return Response.builder().code(ACCOUNT_NOT_FOUND_CODE)
                 .message(INVALID_DESTINATION_MESSAGE).build();
         InternetBankingCustomer internetBankingCustomer = internetBankingCustomersRepo.findByAccountNumber(request.getSourceAccountNumber());
-        System.out.println(internetBankingCustomer);
         Customer sourceAccount = userService.findByAccountNumber(request.getSourceAccountNumber());
         checkIfSourceAccountIsSignedUpForInternetBanking(internetBankingCustomer, sourceAccount);
         checkAccountStatus(sourceAccount, "PERMISSION DENIED. SOURCE ACCOUNT WAS RESTRICTED");
@@ -158,7 +156,7 @@ public class InternetBankingServiceImpl implements InternetBankingService{
     }
 
     @Override
-    public TransactionHistoryResponse getAllTransactionsDoneByCustomer(TransactionHistoryRequest request) {
+    public TransactionHistoryResponse getCustomerTransactions(TransactionHistoryRequest request) {
         try {
             Customer customer = userService.findByAccountNumber(request.getAccountNumber());
             if (customer == null) throw new CustomerNotFound(ACCOUNT_NOT_FOUND_MESSAGE);

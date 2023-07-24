@@ -4,7 +4,6 @@ package com.system.moneybank.controller;
 import com.system.moneybank.dtos.request.*;
 import com.system.moneybank.service.InternetBankingService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/iCustomer/")
 @Tag(name = "Internet Banking API's")
+@CrossOrigin(origins = "*")
 public class InternetBankingController {
     private final InternetBankingService internetBankingService;
 
@@ -72,7 +72,7 @@ public class InternetBankingController {
     @GetMapping("transaction_history")
     @PreAuthorize("hasAuthority('CUSTOMER')")
     public ResponseEntity<?> getCustomerTransactions(@RequestBody TransactionHistoryRequest request){
-        return new ResponseEntity<>(internetBankingService.getAllTransactionsDoneByCustomer(request), HttpStatus.OK);
+        return new ResponseEntity<>(internetBankingService.getCustomerTransactions(request), HttpStatus.OK);
     }
     @Operation(
             summary = "Deactivates a customer's card",
